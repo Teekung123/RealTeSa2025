@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef , useState} from 'react';
+import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-timedimension';
@@ -8,6 +9,7 @@ import 'leaflet.heat';
 const Map = () => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // ป้องกันการสร้าง map ซ้ำ
@@ -51,6 +53,16 @@ const Map = () => {
       period: "PT10S" // step ทุก 10 วินาที
     });
     map.timeDimension = timeDimension;
+
+    axios.get('http://localhost:3000/api/data')
+    .then(response => {
+      console.log('Data from server:', response.data);
+      setLoading(false);
+    })
+    .catch(error => {
+      console.error('Error fetching data from server:', error);
+      setLoading(false);
+    });
 
     // 3) ตัวอย่าง GeoJSON ที่มีเวลา (properties.times เป็น array ISO strings)
     const geojsonFeature = {
