@@ -7,9 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "nodemon src/api/server.js"
   },
   "dependencies": {
+    "express": "^5.1.0",
+    "leaflet": "^1.9.4",
+    "leaflet-timedimension": "^1.1.1",
+    "leaflet.heat": "^0.2.0",
+    "nodemon": "^3.1.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
