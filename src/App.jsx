@@ -3,6 +3,8 @@ import './App.css'
 import logo from './assets/Pic1.png'
 import avatar from './assets/Pic2.png'
 import { FiAlignJustify } from "react-icons/fi";
+import React from 'react'
+import Reports from './component/Reports.jsx'
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
         <button className='profile-btn' aria-label='โปรไฟล์'>
           <img src={avatar} alt="Profile" />
         </button>
+        <div>Reports</div>
       </header>
       {/* <Map /> */}
     </>
