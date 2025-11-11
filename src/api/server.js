@@ -60,6 +60,23 @@ app.get('/api/targets', async (req, res) => {
   }
 });
 
+app.get('/api/MyDrone', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('merged_data_location');
+    const drones = await collection.find({}).toArray();
+
+    res.json({ 
+      success: true, 
+      count: drones.length,
+      data: drones 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 // Route สำหรับจัดการ 404
 app.use((req, res) => {
   res.status(404).json({ 
