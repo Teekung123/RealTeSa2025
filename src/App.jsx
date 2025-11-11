@@ -5,10 +5,12 @@ import React from 'react'
 import Reports from './component/Reports.jsx'
 import Header from './component/Header.jsx'
 
+
 function App() {
   return (
     <>
         <Header />
+        <Reports />
       {/* <Map /> */}
     </>
   )
