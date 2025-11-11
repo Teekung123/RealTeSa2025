@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import Header from '../component/Header.jsx'
 
 function MyDrone() {
     const [droneData, setDroneData] = useState([]);
@@ -190,39 +191,41 @@ function MyDrone() {
     }
 
     return (
-        <div style={{ padding: '20px', background: '#ffffffff', minHeight: '100vh', color: '#000000ff' }}>
-            <h2>🎯 Target Data from MongoDB</h2>
+        <div style={{ padding: '0', background: '#ffffffff', minHeight: '100vh', color: '#000000ff' }}>
+            <Header/>
+            <div style={{ padding: '20px' }}>
+                <h2>🎯 Target Data from MongoDB</h2>
 
-            {/* ✅ กล่องค้นหา */}
-            <div style={{ marginBottom: '20px' }}>
-                <input
-                    type="text"
-                    placeholder="🔍 ค้นหาข้อมูล..."
-                    value={filterText}
-                    onChange={(e) => {
-                        setFilterText(e.target.value);
-                        setCurrentPage(1); // รีเซ็ตหน้าเวลาเปลี่ยนข้อความค้นหา
-                    }}
-                    style={{
-                        padding: '8px 12px',
-                        width: '300px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px'
-                    }}
-                />
-                <span style={{ marginLeft: '10px', color: '#555' }}>
-                    Showing {filteredData.length} results
-                </span>
-            </div>
+                {/* ✅ กล่องค้นหา */}
+                <div style={{ marginBottom: '20px' }}>
+                    <input
+                        type="text"
+                        placeholder="🔍 ค้นหาข้อมูล..."
+                        value={filterText}
+                        onChange={(e) => {
+                            setFilterText(e.target.value);
+                            setCurrentPage(1); // รีเซ็ตหน้าเวลาเปลี่ยนข้อความค้นหา
+                        }}
+                        style={{
+                            padding: '8px 12px',
+                            width: '300px',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                        }}
+                    />
+                    <span style={{ marginLeft: '10px', color: '#555' }}>
+                        Showing {filteredData.length} results
+                    </span>
+                </div>
 
-            {/* แสดงข้อมูลสถิติ */}
-            <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <p><strong>Total records:</strong> {droneData.length}</p>
-                <p><strong>Current page:</strong> {currentPage} / {totalPages}</p>
-                <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, droneData.length)} of {droneData.length}</p>
-                <p><strong>Items per page:</strong> {itemsPerPage}</p>
-                <p style={{ color: 'blue' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
-            </div>
+                {/* แสดงข้อมูลสถิติ */}
+                <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <p><strong>Total records:</strong> {droneData.length}</p>
+                    <p><strong>Current page:</strong> {currentPage} / {totalPages}</p>
+                    <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, droneData.length)} of {droneData.length}</p>
+                    <p><strong>Items per page:</strong> {itemsPerPage}</p>
+                    <p style={{ color: 'blue' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
+                </div>
 
             {currentItems.length > 0 ? (
                 <>
@@ -300,6 +303,7 @@ function MyDrone() {
             ) : (
                 <p>📭 No data found...</p>
             )}
+            </div>
         </div>
     );
 }

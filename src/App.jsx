@@ -1,7 +1,7 @@
 import Map from './component/Map'
 import './App.css'
-import logo from './assets/pic1.png'
-import avatar from './assets/pic2.png'
+import logo from './assets/Pic1.png'
+import avatar from './assets/Pic2.png'
 import { FiAlignJustify } from "react-icons/fi";
 
 function App() {
