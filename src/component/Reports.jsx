@@ -1,6 +1,7 @@
 // src/components/Reports.jsx
 import React, { useMemo, useState } from "react";
 import dayjs from "dayjs";
+import Header from "./Header";
 import {
   LineChart,
   Line,
