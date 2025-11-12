@@ -164,8 +164,8 @@ function App() {
           flexDirection: 'column',
           justifyContent: 'center',
         }}>
-          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 ,background : '#2d2d2d' }}>
-            สถานะฝูงโดรน (ฝ่ายเรา)
+          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 ,background : '#2d2d2d'}}>
+            สถานะฝูงโดรน (ฝ่ายเรา) 
           </div>
           <div style={{ width: '100%', height: 100 }}>
             <ResponsiveContainer width="100%" height="100%">
