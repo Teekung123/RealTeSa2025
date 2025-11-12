@@ -89,8 +89,6 @@ function App() {
           overflow: 'hidden',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
           <Map />
         </div>
         
