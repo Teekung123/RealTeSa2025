@@ -3,11 +3,15 @@ import { FiAlignJustify } from "react-icons/fi";
 import logo from '../assets/Pic1.png'
 import avatar from '../assets/Pic2.png'
 
-function Header() {
+function Header({ onMenuClick }) {
   return (
     <div style={{padding:0,margin:0,boxSizing:'border-box'}}>
       <header className="top-bar">
-              <button className='menu-btn' aria-label='เปิดเมนู'>
+              <button 
+                className='menu-btn' 
+                aria-label='เปิดเมนู'
+                onClick={onMenuClick}
+              >
                 <FiAlignJustify size={22}/>
               </button>
       

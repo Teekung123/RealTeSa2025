@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import Header from "./Header";
+import Sidebar from "./Sidebar";
 import {
   LineChart,
   Line,
@@ -43,6 +44,7 @@ const sample = {  //ตัวอย่างข้อมูล
 };
 
 export default function Reports() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [data] = useState(sample);
 
   // Metrics
@@ -86,12 +88,8 @@ export default function Reports() {
   const COLORS = ["#60a5fa", "#9ca3af"];
 
   return (
-    <>
-      {/* เพิ่ม Header */}
-      <Header />
-
-      <div className="r-page">
-        <h1>REPORTS </h1>
+    <div className="r-page">
+      <h1>REPORTS </h1>
 
         <div className="r-grid">
           {/* ซ้ายบน: Metrics ฝ่ายเรา */}
@@ -165,38 +163,37 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* ตาราง */}
-          <div className="r-col-12">
-            <Card title="ตารางการตรวจพบล่าสุด">
-              <div className="r-table-wrap">
-                <table className="r-table">
-                  <thead>
-                    <tr>
-                      <th>ลำดับ</th>
-                      <th>ละติจูด</th>
-                      <th>ลองจิจูด</th>
-                      <th>วัน/เวลาที่ตรวจพบ</th>
-                      <th>สถานะ (Active)</th>
+        {/* ตาราง */}
+        <div className="r-col-12">
+          <Card title="ตารางการตรวจพบล่าสุด">
+            <div className="r-table-wrap">
+              <table className="r-table">
+                <thead>
+                  <tr>
+                    <th>ลำดับ</th>
+                    <th>ละติจูด</th>
+                    <th>ลองจิจูด</th>
+                    <th>วัน/เวลาที่ตรวจพบ</th>
+                    <th>สถานะ (Active)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((r) => (
+                    <tr key={r.no}>
+                      <td>{r.no}</td>
+                      <td>{r.lat}</td>
+                      <td>{r.lng}</td>
+                      <td>{r.ts}</td>
+                      <td>{r.active}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((r) => (
-                      <tr key={r.no}>
-                        <td>{r.no}</td>
-                        <td>{r.lat}</td>
-                        <td>{r.lng}</td>
-                        <td>{r.ts}</td>
-                        <td>{r.active}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

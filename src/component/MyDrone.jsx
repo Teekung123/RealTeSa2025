@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Header from '../component/Header.jsx'
+import Sidebar from '../component/Sidebar.jsx'
 
 function MyDrone() {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [droneData, setDroneData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -192,7 +194,8 @@ function MyDrone() {
 
     return (
         <div style={{ padding: '0', background: '#ffffffff', minHeight: '100vh', color: '#000000ff' }}>
-            <Header/>
+            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <Header onMenuClick={() => setIsSidebarOpen(true)} />
             <div style={{ padding: '20px' }}>
                 <h2>🎯 Target Data from MongoDB</h2>
 

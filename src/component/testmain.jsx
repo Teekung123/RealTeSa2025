@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import Map from './Map';
 import Header from './Header';
+import Sidebar from './Sidebar';
 
 function TestMain() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   const [alerts] = useState([
     { text: 'โครงข่ายเหนือเกิดจังทั้งควร', status: 'danger' },
     { text: '', status: 'normal' },
@@ -17,7 +20,8 @@ function TestMain() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#e5e5e5' }}>
-      <Header />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
       {/* Main Content */}
       <div style={{ display: 'flex', flex: 1, padding: '10px', gap: '10px', overflow: 'hidden' }}>

@@ -4,11 +4,14 @@ import { FiAlignJustify } from "react-icons/fi";
 import React from 'react'
 import Reports from './component/Reports.jsx'
 import Header from './component/Header.jsx'
+import Sidebar from './component/Sidebar.jsx'
 import { useState } from 'react';
 
 
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   const [alerts] = useState([
     { text: 'โครงข่ายเหนือเกิดจังทั้งควร', status: 'danger' },
     { text: '', status: 'normal' },
@@ -23,7 +26,8 @@ function App() {
 
   return (
  <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#e5e5e5' }}>
-      <Header />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
       {/* Main Content */}
       <div style={{ display: 'flex', flex: 1, padding: '10px', gap: '10px', overflow: 'hidden' }}>
@@ -58,6 +62,22 @@ function App() {
               {alert.text || ''}
             </div>
           ))}
+
+          {/* Graph Panel ใต้ Alerts */}
+          <div style={{ 
+            flex: 1,
+            background: '#2d2d2d', 
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontSize: '14px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            minHeight: '200px'
+          }}>
+            กราฟ บลาๆ
+          </div>
         </div>
 
         {/* Center - Map */}

@@ -14,6 +14,16 @@
   color: #cfe9c8;
 }
 
+/* แก้ไข z-index ของ Leaflet controls ให้สูงกว่า Sidebar overlay */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 999 !important;
+}
+
+.leaflet-control {
+  z-index: 999 !important;
+}
+
 .top-bar{
   display: grid;
   grid-template-columns: 48px 1fr 48px; /* เล็กลง */
