@@ -165,187 +165,296 @@ const Map = forwardRef((props, ref) => {
     });
     map.timeDimension = timeDimension;
 
-    axios.get('http://localhost:3000/api/data')
-    .then(response => {
-      console.log('Data from server:', response.data);
-      setLoading(false);
-    })
-    .catch(error => {
-      console.error('Error fetching data from server:', error);
-      setLoading(false);
-    });
-
-    // 3) ตัวอย่าง GeoJSON ที่มีเวลา (properties.times เป็น array ISO strings)
-    const geojsonFeature = {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": {
-            "id": "DRONE-ALPHA",
-            "type": "drone",
-            "times": [
-              "2025-11-11T09:02:00Z",
-              "2025-11-11T09:04:00Z",
-              "2025-11-11T09:06:00Z",
-              "2025-11-11T09:08:00Z",
-              "2025-11-11T09:10:00Z"
-            ]
-          },
-          "geometry": {
-            "type": "LineString",
-            "coordinates": [
-              [100.5018, 13.7563],
-              [100.5050, 13.7580],
-              [100.5100, 13.7600],
-              [100.5120, 13.7620],
-              [100.5140, 13.7630]
-            ]
-          }
-        },
-        {
-          "type": "Feature",
-          "properties": {
-            "id": "DRONE-BETA",
-            "type": "drone",
-            "times": [
-              "2025-11-11T09:03:00Z",
-              "2025-11-11T09:05:00Z",
-              "2025-11-11T09:07:00Z",
-              "2025-11-11T09:09:00Z"
-            ]
-          },
-          "geometry": {
-            "type": "LineString",
-            "coordinates": [
-              [100.5000, 13.7550],
-              [100.5030, 13.7570],
-              [100.5060, 13.7590],
-              [100.5080, 13.7610]
-            ]
-          }
-        },
-        {
-          "type": "Feature",
-          "properties": {
-            "id": "TGT-01",
-            "type": "target",
-            "times": [
-              "2025-11-11T09:03:00Z",
-              "2025-11-11T09:05:00Z"
-            ]
-          },
-          "geometry": {
-            "type": "Point",
-            "coordinates": [100.508, 13.757]
-          }
+    // 3) ดึงข้อมูลจาก MongoDB
+    const loadMapData = async () => {
+      try {
+        console.log('🔄 กำลังโหลดข้อมูล...');
+        
+        // ดึงข้อมูลโดรนฝั่งเรา (สีเขียว)
+        const myDroneResponse = await axios.get('http://localhost:3000/api/MyDrone');
+        const myDroneData = myDroneResponse.data.data || [];
+        
+        // ดึงข้อมูลฝั่งตรงข้าม (สีแดง)
+        const opponentResponse = await axios.get('http://localhost:3000/api/targets');
+        const opponentData = opponentResponse.data.data || [];
+        
+        console.log('🟢 My Drone Data:', myDroneData.length, 'records');
+        console.log('🔴 Opponent Data:', opponentData.length, 'records');
+        
+        // แปลงข้อมูลเป็น GeoJSON
+        const myDroneFeatures = convertToGeoJSON(myDroneData, 'drone', '#10b981');
+        const opponentFeatures = convertToGeoJSON(opponentData, 'opponent', '#ef4444');
+        
+        console.log('✅ My Drone Features:', myDroneFeatures.length);
+        console.log('✅ Opponent Features:', opponentFeatures.length);
+        
+        // ตรวจสอบว่า map instance พร้อมหรือไม่
+        if (!mapInstanceRef.current) {
+          console.error('❌ Map instance is not ready yet!');
+          return;
         }
-      ]
+        
+        // วาดข้อมูลโดรนฝั่งเรา (สีเขียว)
+        drawDronePaths(mapInstanceRef.current, myDroneFeatures, '#10b981', '🚁 Our Drone');
+        
+        // วาดข้อมูลฝั่งตรงข้าม (สีแดง)
+        drawDronePaths(mapInstanceRef.current, opponentFeatures, '#ef4444', '🎯 Opponent');
+        
+        // สร้าง GeoJSON FeatureCollection สำหรับ TimeDimension
+        // Filter เฉพาะ features ที่มี coordinates ถูกต้อง
+        const validMyDroneFeatures = myDroneFeatures.filter(f => {
+          if (!f.properties.id || f.properties.id === 'undefined' || f.properties.id === 'unknown_device') {
+            return false;
+          }
+          if (f.geometry.type === 'LineString') {
+            return f.geometry.coordinates && f.geometry.coordinates.length >= 2;
+          }
+          if (f.geometry.type === 'Point') {
+            return f.geometry.coordinates && f.geometry.coordinates.length === 2;
+          }
+          return false;
+        });
+        
+        const validOpponentFeatures = opponentFeatures.filter(f => {
+          if (!f.properties.id || f.properties.id === 'undefined' || f.properties.id === 'unknown_device') {
+            return false;
+          }
+          if (f.geometry.type === 'LineString') {
+            return f.geometry.coordinates && f.geometry.coordinates.length >= 2;
+          }
+          if (f.geometry.type === 'Point') {
+            return f.geometry.coordinates && f.geometry.coordinates.length === 2;
+          }
+          return false;
+        });
+        
+        console.log('✅ Valid My Drone Features:', validMyDroneFeatures.length);
+        console.log('✅ Valid Opponent Features:', validOpponentFeatures.length);
+        
+        const allFeatures = [...validMyDroneFeatures, ...validOpponentFeatures];
+        
+        if (allFeatures.length === 0) {
+          console.warn('⚠️ No valid features for timeline');
+          setLoading(false);
+          return;
+        }
+        
+        const geojsonData = {
+          type: "FeatureCollection",
+          features: allFeatures
+        };
+        
+        // สร้าง GeoJSON Layer
+        const geoJsonLayer = L.geoJson(geojsonData, {
+          style: feature => ({ 
+            color: feature.properties.color, 
+            weight: 4 
+          }),
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, { 
+              radius: 8, 
+              fillOpacity: 1,
+              fillColor: feature.properties.color,
+              color: '#fff',
+              weight: 2
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            layer.bindPopup(`<b>${feature.properties.id}</b><br>${feature.properties.type}`);
+          },
+          filter: (feature) => {
+            // Double check coordinates
+            if (feature.geometry.type === 'Point') {
+              const coords = feature.geometry.coordinates;
+              return coords && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1]);
+            }
+            return true;
+          }
+        });
+        
+        // สร้าง TimeDimension Layer
+        const timedLayer = L.timeDimension.layer.geoJson(geoJsonLayer, {
+          updateTimeDimension: true,
+          addlastPoint: true,
+          duration: "PT1M"
+        });
+        
+        timedLayer.addTo(mapInstanceRef.current);
+        
+        // รวบรวม times ทั้งหมดจาก features
+        const availableTimes = [];
+        allFeatures.forEach(feature => {
+          if (feature.properties && feature.properties.times) {
+            feature.properties.times.forEach(t => {
+              availableTimes.push(new Date(t));
+            });
+          }
+        });
+        
+        // เรียงลำดับเวลา
+        if (availableTimes.length > 0) {
+          availableTimes.sort((a, b) => a - b);
+          const timeStrings = availableTimes.map(d => d.toISOString()).join(',');
+          timeDimension.setAvailableTimes(timeStrings, 'replace');
+          timeDimension.setCurrentTime(availableTimes[0].getTime());
+          console.log(`⏰ ตั้งเวลา Timeline: ${availableTimes.length} จุดเวลา`);
+          console.log(`📅 เวลาเริ่มต้น: ${availableTimes[0].toISOString()}`);
+          console.log(`📅 เวลาสิ้นสุด: ${availableTimes[availableTimes.length - 1].toISOString()}`);
+        }
+        
+        // เพิ่ม TimeDimension Control
+        const playerControl = new L.Control.TimeDimension({
+          timeDimension: timeDimension,
+          playerOptions: {
+            transitionTime: 1000,
+            loop: true,
+            startOver: true
+          }
+        });
+        mapInstanceRef.current.addControl(playerControl);
+        
+        console.log('✨ วาดแผนที่เสร็จสิ้น!');
+        setLoading(false);
+      } catch (error) {
+        console.error('❌ Error loading map data:', error);
+        setLoading(false);
+      }
+    };
+    
+    // ฟังก์ชันแปลงข้อมูลเป็น GeoJSON
+    const convertToGeoJSON = (data, type, color) => {
+      const grouped = {};
+      
+      data.forEach(item => {
+        if (!grouped[item.deviceId]) {
+          grouped[item.deviceId] = [];
+        }
+        grouped[item.deviceId].push(item);
+      });
+      
+      const features = [];
+      Object.keys(grouped).forEach(deviceId => {
+        const points = grouped[deviceId].sort((a, b) => a.time - b.time);
+        
+        if (points.length > 1) {
+          // สร้าง times array (ISO strings) สำหรับ TimeDimension
+          const times = points.map(p => {
+            const timestamp = p.time * 1000; // แปลงวินาทีเป็นมิลลิวินาที
+            return new Date(timestamp).toISOString();
+          });
+          
+          features.push({
+            type: 'Feature',
+            properties: { 
+              id: deviceId, 
+              type: type,
+              color: color,
+              pointCount: points.length,
+              times: times // เพิ่ม times สำหรับ TimeDimension
+            },
+            geometry: {
+              type: 'LineString',
+              coordinates: points.map(p => [p.longitude, p.latitude])
+            }
+          });
+        } else if (points.length === 1) {
+          const timestamp = points[0].time * 1000;
+          const isoTime = new Date(timestamp).toISOString();
+          
+          features.push({
+            type: 'Feature',
+            properties: { 
+              id: deviceId, 
+              type: type,
+              color: color,
+              pointCount: 1,
+              times: [isoTime] // เพิ่ม times สำหรับ TimeDimension
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [points[0].longitude, points[0].latitude]
+            }
+          });
+        }
+      });
+      
+      return features;
+    };
+    
+    // ฟังก์ชันวาดเส้นทางและจุด
+    const drawDronePaths = (mapInstance, features, color, label) => {
+      if (!mapInstance) {
+        console.error('❌ Map instance is not ready!');
+        return;
+      }
+      
+      features.forEach(feature => {
+        try {
+          if (feature.geometry.type === 'LineString') {
+            const coords = feature.geometry.coordinates
+              .filter(c => c && c.length === 2 && !isNaN(c[0]) && !isNaN(c[1]))
+              .map(c => [c[1], c[0]]); // [lat, lng]
+            
+            if (coords.length < 2) {
+              console.warn(`⚠️ ${feature.properties.id}: Not enough valid coordinates`);
+              return;
+            }
+            
+            // วาดเส้นทาง
+            const polyline = L.polyline(coords, {
+              color: color,
+              weight: 3,
+              opacity: 0.7,
+              dashArray: '5, 10'
+            }).addTo(mapInstance);
+            
+            // จุดเริ่มต้น
+            L.circleMarker(coords[0], {
+              radius: 8,
+              fillColor: color,
+              color: '#fff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>Start (${feature.properties.pointCount} points)`);
+            
+            // จุดสิ้นสุด
+            L.circleMarker(coords[coords.length - 1], {
+              radius: 8,
+              fillColor: color,
+              color: '#fff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>End Point`);
+            
+          } else if (feature.geometry.type === 'Point') {
+            const coord = feature.geometry.coordinates;
+            
+            if (!coord || coord.length !== 2 || isNaN(coord[0]) || isNaN(coord[1])) {
+              console.warn(`⚠️ ${feature.properties.id}: Invalid point coordinates`);
+              return;
+            }
+            
+            L.circleMarker([coord[1], coord[0]], {
+              radius: 8,
+              fillColor: color,
+              color: '#fff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>Single Point`);
+          }
+        } catch (error) {
+          console.error(`❌ Error drawing ${feature.properties.id}:`, error);
+        }
+      });
     };
 
-    // 4) สร้าง Heatmap จากข้อมูลโดรน
-    const heatmapPoints = [];
-    geojsonFeature.features.forEach(feature => {
-      if (feature.properties.type === 'drone' && feature.geometry.type === 'LineString') {
-        feature.geometry.coordinates.forEach(coord => {
-          // [lat, lng, intensity]
-          heatmapPoints.push([coord[1], coord[0], 0.5]);
-        });
-      }
-    });
+    // โหลดข้อมูล
+    loadMapData();
 
-    const heatLayer = L.heatLayer(heatmapPoints, {
-      radius: 25,
-      blur: 35,
-      maxZoom: 17,
-      max: 1.0,
-      gradient: {
-        0.0: 'blue',
-        0.5: 'lime',
-        1.0: 'red'
-      }
-    }).addTo(map);
-
-    // 5) สร้าง Polyline สำหรับแสดงเส้นทางการเคลื่อนที่ของโดรนแต่ละตัว (สีเขียวทั้งหมด - ของเรา)
-    const dronePathLayers = {};
-    geojsonFeature.features.forEach(feature => {
-      if (feature.properties.type === 'drone' && feature.geometry.type === 'LineString') {
-        const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
-        const color = '#10b981'; // สีเขียวสำหรับโดรนของเรา
-        
-        const polyline = L.polyline(coords, {
-          color: color,
-          weight: 3,
-          opacity: 0.7,
-          dashArray: '5, 10'
-        }).addTo(map);
-
-        // เพิ่ม marker ที่จุดเริ่มต้น (สีเขียว)
-        L.circleMarker(coords[0], {
-          radius: 8,
-          fillColor: color,
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8
-        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>🚁 Start Point (Our Drone)`);
-
-        // เพิ่ม marker ที่จุดสิ้นสุด (สีเขียว)
-        L.circleMarker(coords[coords.length - 1], {
-          radius: 8,
-          fillColor: color,
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8
-        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>🚁 End Point (Our Drone)`);
-
-        dronePathLayers[feature.properties.id] = polyline;
-      }
-    });
-
-    // 6) Create a time-aware layer for GeoJSON (สีเขียวสำหรับโดรนของเรา)
-    const geoJsonLayer = L.geoJson(geojsonFeature, {
-      style: feature => ({ 
-        color: feature.properties.type === 'drone' ? '#10b981' : '#ef4444', // เขียวสำหรับโดรน, แดงสำหรับ target
-        weight: 4 
-      }),
-      pointToLayer: (feature, latlng) => {
-        const color = feature.properties.type === 'drone' ? '#10b981' : '#ef4444';
-        return L.circleMarker(latlng, { 
-          radius: 8, 
-          fillOpacity: 1,
-          fillColor: color,
-          color: '#fff',
-          weight: 2
-        });
-      },
-      onEachFeature: (feature, layer) => {
-        const type = feature.properties.type === 'drone' ? '🚁 Our Drone' : '🎯 Alert Target';
-        layer.bindPopup(`<b>${type}</b><br>${feature.properties.id}`);
-      }
-    });
-
-    const timedLayer = L.timeDimension.layer.geoJson(geoJsonLayer, {
-      updateTimeDimension: true,
-      addlastPoint: true,   // แสดงจุดสุดท้ายบนเส้น
-      duration: "PT1M"      // เวลาในหน้าต่าง (1 minute)
-    });
-
-    timedLayer.addTo(map);
-
-    // 7) Add TimeDimension control (play/pause/slider)
-    const playerControl = new L.Control.TimeDimension({
-      timeDimension: timeDimension,
-      playerOptions: {
-        transitionTime: 1000,
-        loop: true,
-        startOver: true
-      }
-    });
-    map.addControl(playerControl);
-
-    // 8) เพิ่ม Layer Control สำหรับสลับ Heatmap และเส้นทาง
+    // Layer Control
     const baseLayers = {
       '🛰️ Satellite': satelliteLayer,
       '🗺️ Street Map': osmLayer,
@@ -353,36 +462,11 @@ const Map = forwardRef((props, ref) => {
       '🌙 Dark Mode': darkLayer
     };
 
-    const overlays = {
-      'Heatmap': heatLayer,
-      '🚁 Our Drone Paths (Green)': Object.keys(dronePathLayers).length > 0 
-        ? L.layerGroup(Object.values(dronePathLayers)) 
-        : L.layerGroup(),
-      ...Object.keys(dronePathLayers).reduce((acc, id) => {
-        acc[`${id} Path`] = dronePathLayers[id];
-        return acc;
-      }, {})
-    };
-
-    L.control.layers(baseLayers, overlays, { position: 'topright' }).addTo(map);
-
-    // 9) เริ่มที่ช่วงเวลาที่มีข้อมูล
-    const availableTimes = []; // เก็บ times ทั้งหมดจาก features
-    geojsonFeature.features.forEach(f => {
-      if (f.properties && f.properties.times) {
-        f.properties.times.forEach(t => availableTimes.push(new Date(t)));
-      }
-    });
-    if (availableTimes.length) {
-      availableTimes.sort((a, b) => a - b);
-      timeDimension.setAvailableTimes(availableTimes.map(d => d.toISOString()).join(','), 'replace');
-      timeDimension.setCurrentTime(availableTimes[0].getTime());
-    }
+    L.control.layers(baseLayers, {}, { position: 'topright' }).addTo(map);
 
     // ✅ บังคับให้ map คำนวณขนาดใหม่
     setTimeout(() => {
       map.invalidateSize();
-      setLoading(false);
     }, 100);
 
     // Cleanup function

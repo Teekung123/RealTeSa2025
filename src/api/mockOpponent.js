@@ -80,8 +80,8 @@ async function generateMockOpponentData() {
   const mockData = [
     // ฝั่งตรงข้าม - แบบจุดเดียว
     ...generateOpponentData("OPPONENT-001", "danger", 20),
-    ...generateOpponentData("OPPONENT-002", "warning", 30),
-    ...generateOpponentData("OPPONENT-003", "danger", 50),
+    ...generateOpponentData("OPPONENT-002", "warning", 1),
+    ...generateOpponentData("OPPONENT-003", "danger", 1),
     
     // ฝั่งตรงข้ามที่ resolve แล้ว
     ...generateOpponentData("OPPONENT-004", "success", 1),

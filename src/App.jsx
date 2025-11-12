@@ -167,7 +167,7 @@ function App() {
           <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 ,background : '#2d2d2d'}}>
             สถานะฝูงโดรน (ฝ่ายเรา) 
           </div>
-          <div style={{ width: '100%', height: 100 }}>
+          <div style={{ width: '100%', height: 100, minHeight: 100 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={28}>
@@ -195,7 +195,7 @@ function App() {
           <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }}>
             สถานะฝูงโดรน (ฝ่ายตรงข้าม)
           </div>
-          <div style={{ width: '100%', height: 100 }}>
+          <div style={{ width: '100%', height: 100, minHeight: 100 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={28}>
