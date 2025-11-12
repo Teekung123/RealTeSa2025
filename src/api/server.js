@@ -87,5 +87,5 @@ app.use((req, res) => {
 
 // เริ่มต้น server
 app.listen(PORT, () => {
-  console.log(`🚀 Server กำลังรันที่ http://localhost:${PORT}`);
+  console.log(`🚀 REST API Server กำลังรันที่ http://localhost:${PORT}`);
 });
