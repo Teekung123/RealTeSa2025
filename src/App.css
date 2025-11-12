@@ -153,6 +153,7 @@
   font-size: 1rem;
   font-weight: 500;
   color: #1f2937;
+  text-align: center;
 }
 
 /* Metric */
@@ -160,6 +161,7 @@
   font-size: 1rem; /* เล็กลง */
   font-weight: 600;
   color: #0b1020;
+  text-align: center;
 }
 
 /* Utility */
@@ -169,8 +171,10 @@
 .r-table {
   width: 100%;
   font-size: 0.85rem;
+  text-align: center;
 }
 .r-table thead th { padding: 6px 8px; }
 .r-table tbody td { padding: 6px 8px; }
 .r-table tbody tr:hover { background: #f3f4f6; }
+
 
