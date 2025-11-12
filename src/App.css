@@ -89,7 +89,7 @@
 
 .r-page {
   padding: 8px;          /* ลดช่องว่าง */
-  max-width: 900px;      /* ลดความกว้างสูงสุด */
+  max-width: 1200px;      /* ลดความกว้างสูงสุด */
   margin-inline: auto;
   color: var(--r-text);
 }
