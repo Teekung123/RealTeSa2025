@@ -1,4 +1,4 @@
-import { useEffect, useRef , useState} from 'react';
+import { useEffect, useRef , useState, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -6,10 +6,82 @@ import 'leaflet-timedimension';
 import 'leaflet-timedimension/dist/leaflet.timedimension.control.css';
 import 'leaflet.heat';
 
-const Map = () => {
+const Map = forwardRef((props, ref) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const markersRef = useRef({}); // เก็บ markers แยกตาม deviceId
   const [loading, setLoading] = useState(true);
+
+  // เปิดเผยฟังก์ชันให้ parent component เรียกใช้
+  useImperativeHandle(ref, () => ({
+    flyTo: (lat, lng, zoom = 15) => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([lat, lng], zoom, {
+          duration: 1.5
+        });
+      }
+    },
+    
+    // เพิ่ม marker ที่ยังไม่หาย
+    addPersistentMarker: (deviceId, lat, lng, type) => {
+      if (!mapInstanceRef.current) return;
+      
+      // ถ้ามี marker เก่าอยู่แล้ว ลบทิ้ง
+      if (markersRef.current[deviceId]) {
+        mapInstanceRef.current.removeLayer(markersRef.current[deviceId]);
+      }
+      
+      // กำหนดสีตาม type
+      let color = '#10b981'; // success - เขียว
+      if (type === 'warning') color = '#f59e0b'; // ส้ม
+      if (type === 'danger') color = '#ef4444'; // แดง
+      
+      // สร้าง marker ใหม่
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'persistent-marker',
+          html: `<div style="
+            background: ${color};
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            animation: pulse 2s infinite;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: -25px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: ${color};
+              color: white;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 10px;
+              font-weight: bold;
+              white-space: nowrap;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            ">${deviceId}</div>
+          </div>`,
+          iconSize: [24, 24]
+        })
+      }).addTo(mapInstanceRef.current);
+      
+      // เก็บ marker ไว้
+      markersRef.current[deviceId] = marker;
+    },
+    
+    // ลบ marker เมื่อเป็น success
+    removeMarker: (deviceId) => {
+      if (markersRef.current[deviceId]) {
+        mapInstanceRef.current.removeLayer(markersRef.current[deviceId]);
+        delete markersRef.current[deviceId];
+        console.log(`🗑️ ลบ marker ${deviceId} (เปลี่ยนเป็น success)`);
+      }
+    }
+  }));
 
   useEffect(() => {
     // ป้องกันการสร้าง map ซ้ำ
@@ -293,6 +365,6 @@ const Map = () => {
       }}
     />
   );
-};
+});
 
 export default Map;

@@ -5,18 +5,30 @@ import React from 'react'
 import Reports from './component/Reports.jsx'
 import Header from './component/Header.jsx'
 import Sidebar from './component/Sidebar.jsx'
-import { useState } from 'react';
+import AlertsBox from './component/AlertsBox.jsx';
+import { useState, useRef } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  const [alerts] = useState([
-    { text: 'โครงข่ายเหนือเกิดจังทั้งควร', status: 'danger' },
-    { text: '', status: 'normal' },
-    { text: '', status: 'normal' },
-  ]);
+  const mapRef = useRef(null);
+
+  // ฟังก์ชันสำหรับให้แมพไปตำแหน่งที่คลิก
+  const handleAlertClick = (lat, lng) => {
+    if (mapRef.current) {
+      mapRef.current.flyTo(lat, lng, 15);
+      console.log(`🗺️ กำลังไปยังพิกัด: ${lat}, ${lng}`);
+    }
+  };
 
   const [missionStates] = useState([
     { id: 'ภารกิจ 122', status: 'Mission Started' },
@@ -34,50 +46,7 @@ function App() {
         
         {/* Left Side - Alerts */}
         <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ 
-            background: '#2d2d2d', 
-            color: '#fff', 
-            padding: '8px', 
-            borderRadius: '4px',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}>
-            Alerts
-          </div>
-          
-          {alerts.map((alert, index) => (
-            <div key={index} style={{
-              background: alert.status === 'danger' ? '#ef4444' : '#fff',
-              color: alert.status === 'danger' ? '#fff' : '#000',
-              padding: '15px 10px',
-              borderRadius: '4px',
-              fontSize: '11px',
-              minHeight: '60px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              border: '1px solid #ccc'
-            }}>
-              {alert.text || ''}
-            </div>
-          ))}
-
-          {/* Graph Panel ใต้ Alerts */}
-          <div style={{ 
-            flex: 1,
-            background: '#2d2d2d', 
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: '14px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            minHeight: '200px'
-          }}>
-            กราฟ บลาๆ
-          </div>
+          <AlertsBox onAlertClick={handleAlertClick} mapRef={mapRef} />
         </div>
 
         {/* Center - Map */}
@@ -89,7 +58,7 @@ function App() {
           overflow: 'hidden',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          <Map />
+          <Map ref={mapRef} />
         </div>
         
         {/* Right Side - Mission State & Graph */}

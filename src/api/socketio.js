@@ -29,7 +29,7 @@ export function setupSocketIO(server, getCollection) {
       }
       try {
         const initialData = await coll.find().toArray();
-        socket.emit('initialData', initialData);
+        // socket.emit('initialData', initialData);
         console.log(`📤 [Socket.IO] ส่งข้อมูลเริ่มต้น ${initialData.length} รายการ`);
       } catch (err) {
         console.error("⚠️ [Socket.IO] เกิดข้อผิดพลาดขณะดึงข้อมูล:", err);
