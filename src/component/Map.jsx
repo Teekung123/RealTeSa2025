@@ -10,6 +10,8 @@ const Map = forwardRef((props, ref) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef({}); // เก็บ markers แยกตาม deviceId
+  const alertPathsRef = useRef({}); // เก็บเส้นทาง alerts แยกตาม deviceId
+  const alertPointsRef = useRef({}); // เก็บจุดของ alerts แต่ละตัว
   const [loading, setLoading] = useState(true);
 
   // เปิดเผยฟังก์ชันให้ parent component เรียกใช้
@@ -31,10 +33,10 @@ const Map = forwardRef((props, ref) => {
         mapInstanceRef.current.removeLayer(markersRef.current[deviceId]);
       }
       
-      // กำหนดสีตาม type
-      let color = '#10b981'; // success - เขียว
+      // กำหนดสีตาม type (สำหรับ Alerts - สีแดง)
+      let color = '#ef4444'; // แดง (danger)
       if (type === 'warning') color = '#f59e0b'; // ส้ม
-      if (type === 'danger') color = '#ef4444'; // แดง
+      if (type === 'success') color = '#10b981'; // เขียว
       
       // สร้าง marker ใหม่
       const marker = L.marker([lat, lng], {
@@ -71,6 +73,29 @@ const Map = forwardRef((props, ref) => {
       
       // เก็บ marker ไว้
       markersRef.current[deviceId] = marker;
+      
+      // เก็บจุดสำหรับวาดเส้นทาง (Alerts - สีแดง)
+      if (!alertPointsRef.current[deviceId]) {
+        alertPointsRef.current[deviceId] = [];
+      }
+      alertPointsRef.current[deviceId].push({ lat, lng, timestamp: Date.now() });
+      
+      // วาดหรืออัพเดทเส้นทาง
+      if (alertPathsRef.current[deviceId]) {
+        mapInstanceRef.current.removeLayer(alertPathsRef.current[deviceId]);
+      }
+      
+      const coords = alertPointsRef.current[deviceId].map(p => [p.lat, p.lng]);
+      if (coords.length > 1) {
+        const polyline = L.polyline(coords, {
+          color: '#ef4444', // สีแดงสำหรับ Alerts
+          weight: 3,
+          opacity: 0.7,
+          dashArray: '5, 10'
+        }).addTo(mapInstanceRef.current);
+        
+        alertPathsRef.current[deviceId] = polyline;
+      }
     },
     
     // ลบ marker เมื่อเป็น success
@@ -79,6 +104,17 @@ const Map = forwardRef((props, ref) => {
         mapInstanceRef.current.removeLayer(markersRef.current[deviceId]);
         delete markersRef.current[deviceId];
         console.log(`🗑️ ลบ marker ${deviceId} (เปลี่ยนเป็น success)`);
+      }
+      
+      // ลบเส้นทางด้วย
+      if (alertPathsRef.current[deviceId]) {
+        mapInstanceRef.current.removeLayer(alertPathsRef.current[deviceId]);
+        delete alertPathsRef.current[deviceId];
+      }
+      
+      // ลบข้อมูลจุด
+      if (alertPointsRef.current[deviceId]) {
+        delete alertPointsRef.current[deviceId];
       }
     }
   }));
@@ -230,12 +266,12 @@ const Map = forwardRef((props, ref) => {
       }
     }).addTo(map);
 
-    // 5) สร้าง Polyline สำหรับแสดงเส้นทางการเคลื่อนที่ของโดรนแต่ละตัว
+    // 5) สร้าง Polyline สำหรับแสดงเส้นทางการเคลื่อนที่ของโดรนแต่ละตัว (สีเขียวทั้งหมด - ของเรา)
     const dronePathLayers = {};
     geojsonFeature.features.forEach(feature => {
       if (feature.properties.type === 'drone' && feature.geometry.type === 'LineString') {
         const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
-        const color = feature.properties.id === 'DRONE-ALPHA' ? '#00ff00' : '#00ffff';
+        const color = '#10b981'; // สีเขียวสำหรับโดรนของเรา
         
         const polyline = L.polyline(coords, {
           color: color,
@@ -244,7 +280,7 @@ const Map = forwardRef((props, ref) => {
           dashArray: '5, 10'
         }).addTo(map);
 
-        // เพิ่ม marker ที่จุดเริ่มต้น
+        // เพิ่ม marker ที่จุดเริ่มต้น (สีเขียว)
         L.circleMarker(coords[0], {
           radius: 8,
           fillColor: color,
@@ -252,9 +288,9 @@ const Map = forwardRef((props, ref) => {
           weight: 2,
           opacity: 1,
           fillOpacity: 0.8
-        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>Start Point`);
+        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>🚁 Start Point (Our Drone)`);
 
-        // เพิ่ม marker ที่จุดสิ้นสุด
+        // เพิ่ม marker ที่จุดสิ้นสุด (สีเขียว)
         L.circleMarker(coords[coords.length - 1], {
           radius: 8,
           fillColor: color,
@@ -262,20 +298,20 @@ const Map = forwardRef((props, ref) => {
           weight: 2,
           opacity: 1,
           fillOpacity: 0.8
-        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>End Point`);
+        }).addTo(map).bindPopup(`<b>${feature.properties.id}</b><br>🚁 End Point (Our Drone)`);
 
         dronePathLayers[feature.properties.id] = polyline;
       }
     });
 
-    // 6) Create a time-aware layer for GeoJSON
+    // 6) Create a time-aware layer for GeoJSON (สีเขียวสำหรับโดรนของเรา)
     const geoJsonLayer = L.geoJson(geojsonFeature, {
       style: feature => ({ 
-        color: feature.properties.type === 'drone' ? 'lime' : 'orange', 
+        color: feature.properties.type === 'drone' ? '#10b981' : '#ef4444', // เขียวสำหรับโดรน, แดงสำหรับ target
         weight: 4 
       }),
       pointToLayer: (feature, latlng) => {
-        const color = feature.properties.type === 'drone' ? 'lime' : 'orange';
+        const color = feature.properties.type === 'drone' ? '#10b981' : '#ef4444';
         return L.circleMarker(latlng, { 
           radius: 8, 
           fillOpacity: 1,
@@ -285,7 +321,7 @@ const Map = forwardRef((props, ref) => {
         });
       },
       onEachFeature: (feature, layer) => {
-        const type = feature.properties.type === 'drone' ? '🚁 Drone' : '🎯 Target';
+        const type = feature.properties.type === 'drone' ? '🚁 Our Drone' : '🎯 Alert Target';
         layer.bindPopup(`<b>${type}</b><br>${feature.properties.id}`);
       }
     });
@@ -319,6 +355,9 @@ const Map = forwardRef((props, ref) => {
 
     const overlays = {
       'Heatmap': heatLayer,
+      '🚁 Our Drone Paths (Green)': Object.keys(dronePathLayers).length > 0 
+        ? L.layerGroup(Object.values(dronePathLayers)) 
+        : L.layerGroup(),
       ...Object.keys(dronePathLayers).reduce((acc, id) => {
         acc[`${id} Path`] = dronePathLayers[id];
         return acc;
