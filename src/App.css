@@ -73,7 +73,7 @@
 /* โลโก้ตรงกลาง */
 .logo{
   justify-self: center;
-  height: 28px; /* เล็กลง */
+  height: 30px; /* เล็กลง */
   width: auto;
   object-fit: contain;
 }
@@ -176,5 +176,9 @@
 .r-table thead th { padding: 6px 8px; }
 .r-table tbody td { padding: 6px 8px; }
 .r-table tbody tr:hover { background: #f3f4f6; }
+
+html, body, #root { height: 100%; }
+body { background: #1e1e1e; } /* พื้นหลังทั้งเว็บ */
+
 
 

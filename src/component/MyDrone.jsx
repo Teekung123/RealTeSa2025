@@ -15,7 +15,7 @@ function MyDrone() {
 
     useEffect(() => {
         // ดึงข้อมูล targets จาก API
-        axios.get('http://localhost:3000/api/MyDrone')
+        axios.get('http://192.168.1.102:3000/api/MyDrone')
             .then(response => {
                 setDroneData(response.data.data || []);
                 setLoading(false);
@@ -193,11 +193,11 @@ function MyDrone() {
     }
 
     return (
-        <div style={{ padding: '0', background: '#ffffffff', minHeight: '100vh', color: '#000000ff' }}>
+        <div style={{ padding: '0', background: '#2d2d2d', minHeight: '100vh', color: '#000000ff' }}>
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
             <div style={{ padding: '20px' }}>
-                <h2>🎯 Target Data from MongoDB</h2>
+                <h2 style={{color:'#ffffff'}}>🎯 Target Data from MongoDB</h2>
 
                 {/* ✅ กล่องค้นหา */}
                 <div style={{ marginBottom: '20px' }}>
@@ -216,18 +216,18 @@ function MyDrone() {
                             borderRadius: '4px'
                         }}
                     />
-                    <span style={{ marginLeft: '10px', color: '#555' }}>
+                    <span style={{ marginLeft: '10px', color: '#ffffffff' }}>
                         Showing {filteredData.length} results
                     </span>
                 </div>
 
                 {/* แสดงข้อมูลสถิติ */}
-                <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap',color: '#ffffffff' }}>
                     <p><strong>Total records:</strong> {droneData.length}</p>
                     <p><strong>Current page:</strong> {currentPage} / {totalPages}</p>
                     <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, droneData.length)} of {droneData.length}</p>
                     <p><strong>Items per page:</strong> {itemsPerPage}</p>
-                    <p style={{ color: 'blue' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
+                    <p style={{ color: '#f81111ff' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
                 </div>
 
             {currentItems.length > 0 ? (

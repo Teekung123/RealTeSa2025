@@ -77,12 +77,12 @@ function App() {
 
 
   return (
- <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#e5e5e5' }}>
+ <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#2d2d2d' }}>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
       {/* Main Content */}
-      <div style={{ display: 'flex', flex: 1, padding: '10px', gap: '10px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, padding: '10px', gap: '10px', overflow: 'hidden',background : ''}}>
         
         {/* Left Side - Alerts */}
         <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -164,7 +164,7 @@ function App() {
           flexDirection: 'column',
           justifyContent: 'center',
         }}>
-          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }}>
+          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 ,background : '#2d2d2d' }}>
             สถานะฝูงโดรน (ฝ่ายเรา)
           </div>
           <div style={{ width: '100%', height: 100 }}>

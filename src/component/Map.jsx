@@ -26,7 +26,7 @@ const Map = forwardRef((props, ref) => {
     addPersistentMarker: (deviceId, lat, lng, type) => {
       if (!mapInstanceRef.current) return;
       
-      // ถ้ามี marker เก่าอยู่แล้ว ลบทิ้ง
+      // ถ้ามี marker เก่าอยู่แล้ว ลบทิ้ง 
       if (markersRef.current[deviceId]) {
         mapInstanceRef.current.removeLayer(markersRef.current[deviceId]);
       }
