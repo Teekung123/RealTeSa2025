@@ -86,112 +86,117 @@ export default function Reports() {
   const COLORS = ["#60a5fa", "#9ca3af"];
 
   return (
-    <div className="r-page">
-      <h1>REPORTS </h1>
+    <>
+      {/* เพิ่ม Header */}
+      <Header />
 
-      <div className="r-grid">
-        {/* ซ้ายบน: Metrics ฝ่ายเรา */}
-        <div className="r-col-12 r-md-col-4 r-stack-3">
-          <Card title="จำนวนโดรนทั้งหมด (ฝ่ายเรา)"><Metric value={totalUs} /></Card>
-          <Card title="จำนวนโดรนที่ Active (ฝ่ายเรา)"><Metric value={activeUs} /></Card>
-          <Card title="จำนวนโดรนที่ Non (ฝ่ายเรา)"><Metric value={nonUs} /></Card>
-        </div>
+      <div className="r-page">
+        <h1>REPORTS </h1>
 
-        {/* กลางบน: Pie ฝ่ายเรา */}
-        <div className="r-col-12 r-md-col-5">
-          <Card title="สถานะฝูงโดรน (ฝ่ายเรา)">
-            <div className="r-h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={90}>
-                    {pieUs.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Legend /><Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+        <div className="r-grid">
+          {/* ซ้ายบน: Metrics ฝ่ายเรา */}
+          <div className="r-col-12 r-md-col-4 r-stack-3">
+            <Card title="จำนวนโดรนทั้งหมด (ฝ่ายเรา)"><Metric value={totalUs} /></Card>
+            <Card title="จำนวนโดรนที่ Active (ฝ่ายเรา)"><Metric value={activeUs} /></Card>
+            <Card title="จำนวนโดรนที่ Non (ฝ่ายเรา)"><Metric value={nonUs} /></Card>
+          </div>
 
-        {/* ขวาบน: ฝ่ายตรงข้าม + Pie */}
-        <div className="r-col-12 r-md-col-3 r-stack-3">
-          <Card title="จำนวนโดรนทั้งหมด (ฝ่ายตรงข้าม)"><Metric value={totalEnemy} /></Card>
-          <Card title="สถานะฝูงโดรน (ฝ่ายตรงข้าม)">
-            <div className="r-h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={90}>
-                    {pieEnemy.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Legend /><Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+          {/* กลางบน: Pie ฝ่ายเรา */}
+          <div className="r-col-12 r-md-col-5">
+            <Card title="สถานะฝูงโดรน (ฝ่ายเรา)">
+              <div className="r-h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={90}>
+                      {pieUs.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Legend /><Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
 
-        {/* กราฟเส้น 2 ฝั่ง */}
-        <div className="r-col-12 r-md-col-6">
-          <Card title="กราฟเส้น (เที่ยวบินฝ่ายเรา / วัน)">
-            <div className="r-h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineUs}>
-                  <XAxis dataKey="date" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="flights" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+          {/* ขวาบน: ฝ่ายตรงข้าม + Pie */}
+          <div className="r-col-12 r-md-col-3 r-stack-3">
+            <Card title="จำนวนโดรนทั้งหมด (ฝ่ายตรงข้าม)"><Metric value={totalEnemy} /></Card>
+            <Card title="สถานะฝูงโดรน (ฝ่ายตรงข้าม)">
+              <div className="r-h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={90}>
+                      {pieEnemy.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Legend /><Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
 
-        <div className="r-col-12 r-md-col-6">
-          <Card title="กราฟเส้น (การตรวจจับฝ่ายตรงข้าม / วัน)">
-            <div className="r-h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineEnemy}>
-                  <XAxis dataKey="date" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="detections" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+          {/* กราฟเส้น 2 ฝั่ง */}
+          <div className="r-col-12 r-md-col-6">
+            <Card title="กราฟเส้น (เที่ยวบินฝ่ายเรา / วัน)">
+              <div className="r-h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={lineUs}>
+                    <XAxis dataKey="date" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="flights" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
 
-        {/* ตาราง */}
-        <div className="r-col-12">
-          <Card title="ตารางการตรวจพบล่าสุด">
-            <div className="r-table-wrap">
-              <table className="r-table">
-                <thead>
-                  <tr>
-                    <th>ลำดับ</th>
-                    <th>ละติจูด</th>
-                    <th>ลองจิจูด</th>
-                    <th>วัน/เวลาที่ตรวจพบ</th>
-                    <th>สถานะ (Active)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableRows.map((r) => (
-                    <tr key={r.no}>
-                      <td>{r.no}</td>
-                      <td>{r.lat}</td>
-                      <td>{r.lng}</td>
-                      <td>{r.ts}</td>
-                      <td>{r.active}</td>
+          <div className="r-col-12 r-md-col-6">
+            <Card title="กราฟเส้น (การตรวจจับฝ่ายตรงข้าม / วัน)">
+              <div className="r-h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={lineEnemy}>
+                    <XAxis dataKey="date" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="detections" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+
+          {/* ตาราง */}
+          <div className="r-col-12">
+            <Card title="ตารางการตรวจพบล่าสุด">
+              <div className="r-table-wrap">
+                <table className="r-table">
+                  <thead>
+                    <tr>
+                      <th>ลำดับ</th>
+                      <th>ละติจูด</th>
+                      <th>ลองจิจูด</th>
+                      <th>วัน/เวลาที่ตรวจพบ</th>
+                      <th>สถานะ (Active)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((r) => (
+                      <tr key={r.no}>
+                        <td>{r.no}</td>
+                        <td>{r.lat}</td>
+                        <td>{r.lng}</td>
+                        <td>{r.ts}</td>
+                        <td>{r.active}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
