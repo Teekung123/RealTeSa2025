@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import Header from "./Header";
+import Sidebar from "./Sidebar";
 import {
   LineChart,
   Line,
@@ -43,6 +44,7 @@ const sample = {  //ตัวอย่างข้อมูล
 };
 
 export default function Reports() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [data] = useState(sample);
 
   // Metrics
@@ -86,7 +88,10 @@ export default function Reports() {
   const COLORS = ["#60a5fa", "#9ca3af"];
 
   return (
-    <div className="r-page">
+    <>
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      <div className="r-page">
       <h1>REPORTS </h1>
 
       <div className="r-grid">
@@ -192,6 +197,7 @@ export default function Reports() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
