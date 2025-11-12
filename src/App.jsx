@@ -167,10 +167,10 @@ function App() {
           <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }}>
             สถานะฝูงโดรน (ฝ่ายเรา)
           </div>
-          <div style={{ width: '100%', height: 120 }}>
+          <div style={{ width: '100%', height: 100 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={35}>
+                <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={28}>
                   {pieUs.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
@@ -195,10 +195,10 @@ function App() {
           <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 4 }}>
             สถานะฝูงโดรน (ฝ่ายตรงข้าม)
           </div>
-          <div style={{ width: '100%', height: 120 }}>
+          <div style={{ width: '100%', height: 100 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={35}>
+                <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={28}>
                   {pieEnemy.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
