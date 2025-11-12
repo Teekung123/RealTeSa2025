@@ -15,6 +15,9 @@ const Map = () => {
     // ป้องกันการสร้าง map ซ้ำ
     if (mapInstanceRef.current) return;
 
+    // รอให้ container พร้อม
+    if (!mapRef.current) return;
+
     // 1) สร้างแผนที่ด้วย OSM tiles
     const map = L.map(mapRef.current, {
       center: [13.7563, 100.5018],
@@ -265,6 +268,12 @@ const Map = () => {
       timeDimension.setCurrentTime(availableTimes[0].getTime());
     }
 
+    // ✅ บังคับให้ map คำนวณขนาดใหม่
+    setTimeout(() => {
+      map.invalidateSize();
+      setLoading(false);
+    }, 100);
+
     // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
@@ -278,7 +287,7 @@ const Map = () => {
     <div 
       ref={mapRef} 
       style={{ 
-        height: '100vh', 
+        height: '100%', 
         width: '100%',
         background: '#0b2e13'
       }}
