@@ -65,6 +65,7 @@ export function setupSocketIO(server, getCollection) {
           }
 
           // Broadcast ข้อมูลใหม่ไปให้ Client ทุกคน
+          console.log("📡 [Socket.IO] กำลังส่งข้อมูลใหม่ไปยัง clients ทั้งหมด");
           io.emit('newData', allEntries);
 
         } else {

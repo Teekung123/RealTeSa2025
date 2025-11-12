@@ -28,8 +28,8 @@ mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ เชื่อมต่อ MongoDB สำเร็จ! (WebSocket Server)');
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    coll = db.collection('merged_data_location');
-    console.log("✅ Collection 'merged_data_location' is ready.");
+    coll = db.collection('Log_data_location');
+    console.log("✅ Collection 'Log_data_location' is ready.");
   })
   .catch((err) => {
     console.error('❌ เชื่อมต่อ MongoDB ไม่สำเร็จ:', err);

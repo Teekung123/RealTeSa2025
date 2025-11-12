@@ -6,7 +6,8 @@ import App from './App.jsx'
 import MyDrone from './component/MyDrone.jsx'
 import Test from './component/testmain.jsx'
 import Reports from './component/Reports.jsx'
-import Map from './component/Map.jsx'
+import MapPage from './component/MapPage.jsx'
+import AlertsHistory from './component/AlertsHistory.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -16,7 +17,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/drone" element={<MyDrone />} />
         <Route path="/test" element={<Test />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/map" element={<Map />} />
+        <Route path="/map" element={<MapPage />} />
+        <Route path="/alerts" element={<AlertsHistory />} />
 
       </Routes>
     </BrowserRouter>

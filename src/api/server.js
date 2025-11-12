@@ -2,7 +2,6 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import Alert from './models/Alert.js';
 
 // โหลด environment variables
 dotenv.config();
@@ -85,40 +84,48 @@ app.post('/api/alerts', async (req, res) => {
   try {
     const { deviceId, latitude, longitude, altitude, type, pointCount } = req.body;
     
-    const alert = new Alert({
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Log_data_location');
+    
+    const alert = {
       deviceId,
       latitude,
       longitude,
       altitude: altitude || 0,
       type: type || 'success',
-      pointCount: pointCount || 1
-    });
+      pointCount: pointCount || 1,
+      timestamp: new Date()
+    };
     
-    await alert.save();
+    const result = await collection.insertOne(alert);
     
     res.json({ 
       success: true, 
       message: 'บันทึก alert สำเร็จ',
-      data: alert 
+      data: { ...alert, _id: result.insertedId }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET - ดึงประวัติ alerts (เรียงจากใหม่ไปเก่า)
-app.get('/api/alerts', async (req, res) => {
+// GET - ดึงประวัติ alerts เรียงจากใหม่ไปเก่า
+app.get('/api/get/alerts', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
     
-    const alerts = await Alert.find()
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Log_data_location');
+    
+    const alerts = await collection.find({})
       .sort({ timestamp: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .toArray();
     
-    const total = await Alert.countDocuments();
+    const total = await collection.countDocuments();
     
     res.json({ 
       success: true, 

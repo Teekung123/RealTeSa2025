@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiHome, FiMap, FiDatabase, FiSettings, FiX } from 'react-icons/fi';
+import { FiHome, FiMap, FiDatabase, FiSettings, FiX, FiBell } from 'react-icons/fi';
 import { TbReportAnalytics } from "react-icons/tb";
 function Sidebar({ isOpen, onClose }) {
   return (
@@ -143,6 +143,25 @@ function Sidebar({ isOpen, onClose }) {
           >
             <FiMap size={20} />
             <span style={{ fontSize: '16px' }}>แผนที่เพิ่มเติม</span>
+          </Link>
+
+          <Link
+            to="/alerts"
+            onClick={onClose}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px',
+              padding: '15px 20px',
+              color: '#fff',
+              textDecoration: 'none',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#2d2d2d')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <FiBell size={20} />
+            <span style={{ fontSize: '16px' }}>ประวัติการแจ้งเตือน</span>
           </Link>
 
           <div
