@@ -88,8 +88,11 @@ export default function Reports() {
   const COLORS = ["#60a5fa", "#9ca3af"];
 
   return (
-    <div className="r-page">
-      <h1>REPORTS </h1>
+    <>
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      <div className="r-page">
+        <h1>REPORTS </h1>
 
         <div className="r-grid">
           {/* ซ้ายบน: Metrics ฝ่ายเรา */}
@@ -193,7 +196,8 @@ export default function Reports() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
