@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { transformDataToEntries } from './utils/transform.js';
+import { transformDataToEntries2 } from './utils/Defform.js';
 
 /**
  * ตั้งค่าและจัดการ Socket.IO Server
@@ -48,7 +49,7 @@ export function setupSocketIO(server, getCollection) {
         console.log(`📦 [Socket.IO] ชนิดข้อมูลจาก Client: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
 
         // ใช้ฟังก์ชันแปลงข้อมูล
-        const allEntries = transformDataToEntries(parsedData);
+        const allEntries = transformDataToEntries2(parsedData);
 
         // บันทึกข้อมูลลง MongoDB
         if (allEntries.length > 0) {

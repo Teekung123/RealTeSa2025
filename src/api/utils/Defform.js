@@ -3,7 +3,7 @@
  * @param {Object|Array} parsedData - ข้อมูลที่ได้รับจาก Client
  * @returns {Array} allEntries - Array ของข้อมูลที่พร้อมบันทึก
  */
-export function transformDataToEntries_Def(parsedData) {
+export function transformDataToEntries2(parsedData) {
   const allEntries = [];
   const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
 
@@ -13,33 +13,33 @@ export function transformDataToEntries_Def(parsedData) {
     const lat = d.latitude;
     const lon = d.longitude;
     const alt = d.altitude;
-    const pos = d.position3D || [];
 
-    // กรณี position3D เป็น Array ของ Arrays (หลายจุด)
-    if (Array.isArray(pos) && pos.length > 0 && Array.isArray(pos[0])) {
-      pos.forEach((p, i) => {
+    // ✅ กรณี latitude/longitude/altitude เป็น Array (หลายจุด)
+    if (Array.isArray(lat) && Array.isArray(lon)) {
+      const count = Math.min(lat.length, lon.length, alt?.length || lat.length, Array.isArray(t) ? t.length : lat.length);
+      for (let i = 0; i < count; i++) {
         allEntries.push({
           deviceId,
           time: Array.isArray(t) ? t[i] : t + i,
-          latitude: p[1] ?? lat?.[i] ?? 0,
-          longitude: p[0] ?? lon?.[i] ?? 0,
-          altitude: p[2] ?? alt?.[i] ?? 0,
+          latitude: lat[i] ?? 0,
+          longitude: lon[i] ?? 0,
+          altitude: alt?.[i] ?? 0,
         });
-      });
-    } 
-    // กรณี position3D เป็น Array ธรรมดา (จุดเดียว)
-    else if (Array.isArray(pos) && pos.length === 3) {
+      }
+    }
+    // ✅ กรณี latitude/longitude/altitude เป็นค่าตัวเดียว
+    else if (typeof lat === "number" && typeof lon === "number") {
       allEntries.push({
         deviceId,
         time: t,
-        latitude: pos[1] ?? lat ?? 0,
-        longitude: pos[0] ?? lon ?? 0,
-        altitude: pos[2] ?? alt ?? 0,
+        latitude: lat ?? 0,
+        longitude: lon ?? 0,
+        altitude: alt ?? 0,
       });
-    } 
-    // ไม่มีข้อมูลตำแหน่ง
+    }
+    // ⚠️ ไม่มีข้อมูลพิกัด
     else {
-      console.warn("⚠️ ข้อมูลตำแหน่ง 3D ว่างเปล่า:", d);
+      console.warn("⚠️ ข้อมูลตำแหน่งไม่ถูกต้องหรือว่างเปล่า:", d);
     }
   });
 

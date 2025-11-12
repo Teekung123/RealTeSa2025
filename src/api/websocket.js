@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { transformDataToEntries } from './utils/transform.js';
+import { transformDataToEntries2 } from './utils/Defform.js';
 
 /**
  * ตั้งค่าและจัดการ WebSocket Server
@@ -31,7 +32,7 @@ export function setupWebSocket(port, getCollection, socketIO) {
         console.log(`📦 [WebSocket] รับข้อมูล: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
 
         // ใช้ฟังก์ชันแปลงข้อมูล
-        const allEntries = transformDataToEntries(parsedData);
+        const allEntries = transformDataToEntries2(parsedData);
 
         // บันทึกข้อมูลลง MongoDB
         if (allEntries.length > 0) {
