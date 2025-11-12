@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import MyDrone from './component/MyDrone.jsx'
 import Test from './component/testmain.jsx'
+import Reports from './component/Reports.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<App />} />
         <Route path="/drone" element={<MyDrone />} />
         <Route path="/test" element={<Test />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
