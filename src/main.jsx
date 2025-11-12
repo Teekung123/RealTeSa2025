@@ -5,7 +5,7 @@ import './index.css'
 import './component/App2.css'
 import App from './App.jsx'
 import MyDrone from './component/MyDrone.jsx'
-import App2 from './component/testmain.jsx'
+import Test from './component/testmain.jsx'
 
 // [Note]: ลบ 'import { Browser } from 'leaflet'' ที่ไม่เกี่ยวข้องออก
 
@@ -16,7 +16,7 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/drone" element={<MyDrone />} />
-        <Route path="/app2" element={<App2 />} />
+        <Route path="/test" element={<Test />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

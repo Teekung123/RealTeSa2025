@@ -16,64 +16,50 @@
 
 .top-bar{
   display: grid;
-  grid-template-columns: 56px 1fr 56px;
+  grid-template-columns: 48px 1fr 48px; /* เล็กลง */
   align-items: center;
-  height: 56px;
-  padding: 0 12px;
-  background-color: #000; /* แถบสีดำ */
+  height: 48px; /* สูงน้อยลง */
+  padding: 0 8px;
+  background-color: #000;
   color: #fff;
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 /* ปุ่มเมนูซ้าย */
 .menu-btn{
-  background: transparent;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 8px;
+  padding: 6px;
 }
 
 /* ถ้าใช้ SVG จาก react-icons */
 .menu-btn svg{
-  color: #fff;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 
 /* โลโก้ตรงกลาง */
 .logo{
   justify-self: center;
-  height: 36px;
+  height: 28px; /* เล็กลง */
   width: auto;
   object-fit: contain;
 }
 
 /* ปุ่มโปรไฟล์ขวา */
 .profile-btn{
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 4px;
+  padding: 2px;
 }
 .profile-btn img{
-  height: 36px;
-  width: 36px;
+  height: 28px; /* เล็กลง */
+  width: 28px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ปรับขนาดบนหน้าจอเล็ก */
 @media (max-width:420px){
-  .logo{ height: 28px; }
-  .profile-btn img, .menu-btn span{ height: 28px; }
+  .logo{ height: 22px; }
+  .profile-btn img, .menu-btn svg{ height: 20px; width:20px; }
 }
 
 
@@ -88,18 +74,18 @@
 }
 
 .r-page {
-  padding: 16px;
-  max-width: 1120px;
+  padding: 8px;          /* ลดช่องว่าง */
+  max-width: 900px;      /* ลดความกว้างสูงสุด */
   margin-inline: auto;
   color: var(--r-text);
 }
-.r-page h1 { font-size: 2.125rem; font-weight: 1000; margin: 0 0 16px; color: #fff; width: 100%; text-align: center; }
+.r-page h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 12px; color: #fff; text-align: center; }
 
 /* Grid 12 cols */
 .r-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px; /* ช่องว่างเล็กลง */
 }
 .r-col-12 { grid-column: span 12; }
 
@@ -117,8 +103,8 @@
 .r-card {
   background: var(--r-card);
   border: 1px solid var(--r-border);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 8px; /* เล็กลง */
+  padding: 6px;       /* พื้นที่ภายในลดลง */
   box-shadow: var(--r-shadow);
 }
 .r-panel-title {
@@ -130,31 +116,20 @@
 
 /* Metric */
 .r-metric {
-  font-size: 2.25rem;
+  font-size: 1rem; /* เล็กลง */
   font-weight: 600;
-  letter-spacing: -0.01em;
   color: #0b1020;
 }
 
 /* Utility */
-.r-h-64 { height: 16rem; }
+.r-h-64 { height: 12rem; } /* ความสูงกราฟลดลง */
 
-/* Table */
-.r-table-wrap { overflow-x: auto; }
+/* Table - เล็กลง */
 .r-table {
   width: 100%;
-  font-size: 0.9rem;
-  border-collapse: collapse;
+  font-size: 0.85rem;
 }
-.r-table thead th {
-  text-align: left;
-  color: var(--r-muted);
-  font-weight: 500;
-  padding: 8px 12px;
-}
-.r-table tbody td {
-  padding: 8px 12px;
-  border-top: 1px solid var(--r-border);
-}
+.r-table thead th { padding: 6px 8px; }
+.r-table tbody td { padding: 6px 8px; }
 .r-table tbody tr:hover { background: #f3f4f6; }
 

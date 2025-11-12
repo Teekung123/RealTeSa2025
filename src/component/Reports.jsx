@@ -21,14 +21,19 @@ const sample = {  //ตัวอย่างข้อมูล
     { id: "D-01", side: "us", active: true,  lat: 13.75, lng: 100.54, lastSeen: "2025-11-11T09:05:00Z" },
     { id: "D-02", side: "us", active: false, lat: 13.76, lng: 100.55, lastSeen: "2025-11-11T08:10:00Z" },
     { id: "D-03", side: "enemy", active: true, lat: 16.44, lng: 102.84, lastSeen: "2025-11-11T07:30:00Z" },
+    { id: "D-04", side: "us", active: true,  lat: 13.77, lng: 100.56, lastSeen: "2025-11-10T12:20:00Z" },
+    { id: "D-05", side: "enemy", active: false, lat: 16.45, lng: 102.85, lastSeen: "2025-11-10T11:15:00Z" },
+    { id: "D-06", side: "us", active: false, lat: 13.78, lng: 100.57, lastSeen: "2025-11-09T14:50:00Z" },
+    { id: "D-07", side: "enemy", active: true, lat: 16.46, lng: 102.86, lastSeen: "2025-11-09T13:40:00Z" },
+    { id: "D-08", side: "us", active: true,  lat: 13.79, lng: 100.58, lastSeen: "2025-11-08T16:25:00Z" },
   ],
-  missions: [
+  missions: [ //กราฟเส้นฝ่ายเรา
     { date: "2025-11-08", side: "us", flights: 6 },
     { date: "2025-11-09", side: "us", flights: 4 },
     { date: "2025-11-10", side: "us", flights: 7 },
     { date: "2025-11-11", side: "us", flights: 5 },
   ],
-  detections: [
+  detections: [ //กราฟเส้นฝ่ายตรงข้าม
     { date: "2025-11-08", count: 2 },
     { date: "2025-11-09", count: 1 },
     { date: "2025-11-10", count: 4 },
@@ -45,18 +50,18 @@ export default function Reports() {
   const nonUs      = useMemo(() => data.drones.filter(d => d.side === "us" && !d.active).length, [data]);
   const totalEnemy = useMemo(() => data.drones.filter(d => d.side === "enemy").length, [data]);
 
-  // Pies
+  // Pies 
   const pieUs = useMemo(() => ([
     { name: "ทำงาน", value: data.drones.filter(d => d.side === "us"    && d.active).length },
-    { name: "ไม่ทำ", value: data.drones.filter(d => d.side === "us"    && !d.active).length },
+    { name: "ไม่ทำงาน", value: data.drones.filter(d => d.side === "us"    && !d.active).length },
   ]), [data]);
 
   const pieEnemy = useMemo(() => ([
     { name: "ทำงาน", value: data.drones.filter(d => d.side === "enemy" && d.active).length },
-    { name: "ไม่ทำ", value: data.drones.filter(d => d.side === "enemy" && !d.active).length },
+    { name: "ไม่ทำงาน", value: data.drones.filter(d => d.side === "enemy" && !d.active).length },
   ]), [data]);
 
-  // Lines
+  // Lines กราฟเส้น
   const lineUs = useMemo(
     () => data.missions.filter(m => m.side === "us").map(m => ({ date: m.date, flights: m.flights })),
     [data]
@@ -66,7 +71,7 @@ export default function Reports() {
     [data]
   );
 
-  // Table
+  // Table แถวตาราง
   const tableRows = useMemo(() => data.drones
     .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
     .map((d, i) => ({
