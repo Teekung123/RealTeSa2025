@@ -27,11 +27,18 @@
 
 /* ปุ่มเมนูซ้าย */
 .menu-btn{
-  padding: 6px;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px;
 }
 
 /* ถ้าใช้ SVG จาก react-icons */
 .menu-btn svg{
+  color: #fff;
   width: 18px;
   height: 18px;
 }
@@ -47,19 +54,26 @@
 
 /* ปุ่มโปรไฟล์ขวา */
 .profile-btn{
-  padding: 2px;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
 }
 .profile-btn img{
-  height: 28px; /* เล็กลง */
-  width: 28px;
+  height: 36px;
+  width: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.08);
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.1);
 }
 
 /* ปรับขนาดบนหน้าจอเล็ก */
 @media (max-width:420px){
-  .logo{ height: 22px; }
-  .profile-btn img, .menu-btn svg{ height: 20px; width:20px; }
+  .logo{ height: 28px; }
+  .profile-btn img, .menu-btn span{ height: 28px; }
 }
 
 
