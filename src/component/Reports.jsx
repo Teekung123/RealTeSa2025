@@ -96,19 +96,19 @@ export default function Reports() {
 
         <div className="r-grid">
           {/* ซ้ายบน: Metrics ฝ่ายเรา */}
-          <div className="r-col-12 r-md-col-4 r-stack-3">
+          <div className="r-col-12 r-md-col-3 r-stack-3">
             <Card title="จำนวนโดรนทั้งหมด (ฝ่ายเรา)"><Metric value={totalUs} /></Card>
             <Card title="จำนวนโดรนที่ Active (ฝ่ายเรา)"><Metric value={activeUs} /></Card>
-            <Card title="จำนวนโดรนที่ Non (ฝ่ายเรา)"><Metric value={nonUs} /></Card>
+            <Card title="จำนวนโดรนที่ Inactive (ฝ่ายเรา)"><Metric value={nonUs} /></Card>
           </div>
 
           {/* กลางบน: Pie ฝ่ายเรา */}
-          <div className="r-col-12 r-md-col-5">
+          <div className="r-col-12 r-md-col-3 r-stack-3">
             <Card title="สถานะฝูงโดรน (ฝ่ายเรา)">
               <div className="r-h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={90}>
+                    <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={83}>
                       {pieUs.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Legend /><Tooltip />
@@ -121,11 +121,14 @@ export default function Reports() {
           {/* ขวาบน: ฝ่ายตรงข้าม + Pie */}
           <div className="r-col-12 r-md-col-3 r-stack-3">
             <Card title="จำนวนโดรนทั้งหมด (ฝ่ายตรงข้าม)"><Metric value={totalEnemy} /></Card>
+          </div>
+
+          <div className="r-col-12 r-md-col-3">
             <Card title="สถานะฝูงโดรน (ฝ่ายตรงข้าม)">
               <div className="r-h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={90}>
+                    <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={83}>
                       {pieEnemy.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Legend /><Tooltip />

@@ -110,6 +110,7 @@
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 12px; /* ช่องว่างเล็กลง */
+  grid-auto-flow: dense;
 }
 .r-col-12 { grid-column: span 12; }
 
