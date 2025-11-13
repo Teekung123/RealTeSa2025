@@ -165,7 +165,12 @@
 }
 
 /* Utility */
-.r-h-64 { height: 12rem; } /* ความสูงกราฟลดลง */
+.r-h-64 {
+  height: 12rem; /* ความสูงกราฟลดลง */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Table - เล็กลง */
 .r-table {

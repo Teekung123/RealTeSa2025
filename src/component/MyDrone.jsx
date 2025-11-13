@@ -1,314 +1,305 @@
-import { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
-import Header from '../component/Header.jsx'
-import Sidebar from '../component/Sidebar.jsx'
+import { useEffect, useState, useRef, useMemo } from "react";
+import axios from "axios";
+
+// 🔥 path ถูกต้อง (เพราะไฟล์อยู่โฟลเดอร์เดียวกัน)
+import Header from "./Header.jsx";
+import Sidebar from "./Sidebar.jsx";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 function MyDrone() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [droneData, setDroneData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [filterText, setFilterText] = useState('');
-    const itemsPerPage = 30; // จำนวนรายการต่อหน้า
-    const tableRef = useRef(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [droneData, setDroneData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterText, setFilterText] = useState("");
+  const tableRef = useRef(null);
 
-    useEffect(() => {
-        // ดึงข้อมูล targets จาก API
-        axios.get('http://192.168.1.102:3000/api/MyDrone')
-            .then(response => {
-                setDroneData(response.data.data || []);
-                setLoading(false);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                setError(error.message);
-                setLoading(false);
-            });
-    }, []);
+  const itemsPerPage = 30;
+  const COLORS = ["#60a5fa", "#f97316", "#22c55e", "#a855f7", "#e11d48"];
 
-    // ฟังก์ชันสำหรับแสดง array เป็น string
-    const renderArray = (arr) => {
-        if (!arr || !Array.isArray(arr)) return 'N/A';
-        return arr.join(', ');
-    };
+  // ---------------------------------------------------
+  // LOAD API (ใช้ /api/targets เหมือน Reports.jsx)
+  // ---------------------------------------------------
+  useEffect(() => {
+    axios
+      .get("http://192.168.1.102:3000/api/targets")
+      .then((res) => {
+        let list = [];
 
-    // ✅ ฟิลเตอร์ข้อมูล
-    const filteredData = droneData.filter(item =>
-        Object.values(item).some(value =>
-            Array.isArray(value)
-                ? value.join(',').toLowerCase().includes(filterText.toLowerCase())
-                : String(value).toLowerCase().includes(filterText.toLowerCase())
-        )
-    );
+        if (Array.isArray(res.data)) list = res.data;
+        else if (res.data.data) list = res.data.data;
+        else if (res.data.targets) list = res.data.targets;
 
-    // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+        const mapped = list.map((t) => ({
+          id: t._id,
+          deviceId: t.deviceId,
+          cameraId: t.cameraId,
+          lastSeen: t.timestamp,
+          altitude: t.altitude,
+          lat: t.latitude,
+          lng: t.longitude,
+        }));
 
-    // ฟังก์ชันเปลี่ยนหน้า
-    const handlePageChange = (pageNumber) => {
-        setCurrentPage(pageNumber);
-        // ✅ หลังจากเปลี่ยนหน้า ให้เลื่อนไปยังตาราง (smooth)
-        // ✅ หลังจากเปลี่ยนหน้า ให้เลื่อนไปยังแถวแรกของหน้านั้น
-        setTimeout(() => {
-            if (tableRef.current) {
-                tableRef.current.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                    inline: 'nearest'
-                });
-            }
-        }, 100);
-    };
+        setDroneData(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
-    // สร้างปุ่มหน้า
-    const renderPagination = () => {
-        const pages = [];
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  // ---------------------------------------------------
+  // PieChart เหมือน Reports.jsx
+  // ---------------------------------------------------
+  const pieByDevice = useMemo(() => {
+    const map = {};
+    droneData.forEach((d) => {
+      const key = d.deviceId || "ไม่ทราบ Device";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [droneData]);
 
-        if (endPage - startPage < maxVisiblePages - 1) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
+  const pieByCamera = useMemo(() => {
+    const map = {};
+    droneData.forEach((d) => {
+      const key = d.cameraId || "ไม่ทราบกล้อง";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [droneData]);
 
-        // ปุ่ม Previous
-        pages.push(
-            <button
-                key="prev"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                style={{
-                    padding: '8px 12px',
-                    margin: '0 4px',
-                    border: '1px solid #ddd',
-                    background: currentPage === 1 ? '#f5f5f5' : '#fff',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    borderRadius: '4px'
-                }}
-            >
-                ← Previous
-            </button>
-        );
+  // ---------------------------------------------------
+  // FILTER
+  // ---------------------------------------------------
+  const filteredData = droneData.filter((item) =>
+    Object.values(item).some((value) =>
+      String(value).toLowerCase().includes(filterText.toLowerCase())
+    )
+  );
 
-        // ปุ่มหน้าแรก
-        if (startPage > 1) {
-            pages.push(
-                <button
-                    key={1}
-                    onClick={() => handlePageChange(1)}
-                    style={{
-                        padding: '8px 12px',
-                        margin: '0 4px',
-                        border: '1px solid #ddd',
-                        background: '#fff',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                    }}
-                >
-                    1
-                </button>
-            );
-            if (startPage > 2) {
-                pages.push(<span key="dots1" style={{ margin: '0 4px' }}>...</span>);
-            }
-        }
+  // ---------------------------------------------------
+  // PAGINATION
+  // ---------------------------------------------------
+  const indexLast = currentPage * itemsPerPage;
+  const indexFirst = indexLast - itemsPerPage;
+  const currentItems = filteredData.slice(indexFirst, indexLast);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-        // ปุ่มหน้าที่แสดง
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(
-                <button
-                    key={i}
-                    onClick={() => handlePageChange(i)}
-                    style={{
-                        padding: '8px 12px',
-                        margin: '0 4px',
-                        border: '1px solid #ddd',
-                        background: currentPage === i ? '#007bff' : '#fff',
-                        color: currentPage === i ? '#fff' : '#000',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        fontWeight: currentPage === i ? 'bold' : 'normal'
-                    }}
-                >
-                    {i}
-                </button>
-            );
-        }
+  const handlePageChange = (p) => {
+    setCurrentPage(p);
+    setTimeout(() => {
+      if (tableRef.current) {
+        tableRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 80);
+  };
 
-        // ปุ่มหน้าสุดท้าย
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                pages.push(<span key="dots2" style={{ margin: '0 4px' }}>...</span>);
-            }
-            pages.push(
-                <button
-                    key={totalPages}
-                    onClick={() => handlePageChange(totalPages)}
-                    style={{
-                        padding: '8px 12px',
-                        margin: '0 4px',
-                        border: '1px solid #ddd',
-                        background: '#fff',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                    }}
-                >
-                    {totalPages}
-                </button>
-            );
-        }
-
-        // ปุ่ม Next
-        pages.push(
-            <button
-                key="next"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                style={{
-                    padding: '8px 12px',
-                    margin: '0 4px',
-                    border: '1px solid #ddd',
-                    background: currentPage === totalPages ? '#f5f5f5' : '#fff',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    borderRadius: '4px'
-                }}
-            >
-                Next →
-            </button>
-        );
-
-        return pages;
-    };
-
-    if (loading) {
-        return <div style={{ padding: '20px' }}>⏳ Loading data...</div>;
-    }
-
-    if (error) {
-        return <div style={{ padding: '20px', color: 'red' }}>❌ Error: {error}</div>;
-    }
-
+  // ---------------------------------------------------
+  // UI
+  // ---------------------------------------------------
+  if (loading)
+    return <div style={{ padding: 20, color: "#fff" }}>⏳ Loading…</div>;
+  if (error)
     return (
-        <div style={{ padding: '0', background: '#2d2d2d', minHeight: '100vh', color: '#000000ff' }}>
-            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-            <Header onMenuClick={() => setIsSidebarOpen(true)} />
-            <div style={{ padding: '20px' }}>
-                <h2 style={{color:'#ffffff'}}>🎯 Target Data from MongoDB</h2>
-
-                {/* ✅ กล่องค้นหา */}
-                <div style={{ marginBottom: '20px' }}>
-                    <input
-                        type="text"
-                        placeholder="🔍 ค้นหาข้อมูล..."
-                        value={filterText}
-                        onChange={(e) => {
-                            setFilterText(e.target.value);
-                            setCurrentPage(1); // รีเซ็ตหน้าเวลาเปลี่ยนข้อความค้นหา
-                        }}
-                        style={{
-                            padding: '8px 12px',
-                            width: '300px',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px'
-                        }}
-                    />
-                    <span style={{ marginLeft: '10px', color: '#ffffffff' }}>
-                        Showing {filteredData.length} results
-                    </span>
-                </div>
-
-                {/* แสดงข้อมูลสถิติ */}
-                <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap',color: '#ffffffff' }}>
-                    <p><strong>Total records:</strong> {droneData.length}</p>
-                    <p><strong>Current page:</strong> {currentPage} / {totalPages}</p>
-                    <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, droneData.length)} of {droneData.length}</p>
-                    <p><strong>Items per page:</strong> {itemsPerPage}</p>
-                    <p style={{ color: '#f81111ff' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
-                </div>
-
-            {currentItems.length > 0 ? (
-                <>
-                    {/* Wrapper สำหรับ scroll แนวนอน */}
-                    <div style={{ 
-                        overflowX: 'auto',
-                        overflowY: 'auto',  // ✅ เพิ่มบรรทัดนี้
-                        maxHeight: '550px', // ✅ กำหนดความสูงสูงสุด (ปรับตามต้องการ)
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        marginBottom: '20px'
-                    }}>
-                        <table cellPadding="8" style={{ 
-                            borderCollapse: 'collapse', 
-                            width: '100%', 
-                            minWidth: '1200px' 
-                        }}>
-                            <thead style={{ 
-                                background: '#f0f0f0', 
-                                color: '#000000ff', 
-                                position: 'sticky', 
-                                top: 0,
-                                zIndex: 10
-                            }}>
-                                <tr>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '60px' }}>No.</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '200px' }}>_id</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Time</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Position 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Velocity 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Acceleration 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Position 2D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Velocity 2D</th>
-                                </tr>
-                            </thead> 
-                            <tbody ref={tableRef}>
-                                {currentItems.map((item, index) => (
-                                    <tr key={item._id} style={{ background: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
-                                            {indexOfFirstItem + index + 1}
-                                        </td>
-                                        <td style={{ 
-                                            border: '1px solid #ddd',
-                                            fontSize: '11px', 
-                                            maxWidth: '200px', 
-                                            overflow: 'hidden', 
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
-                                        }}>
-                                            {item._id}
-                                        </td>
-                                        <td style={{ border: '1px solid #ddd' }}>{item.time}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.position3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.velocity3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.acceleration3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.position2D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.velocity2D)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination Controls */}
-                    <div style={{ 
-                        marginTop: '20px', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center',
-                        flexWrap: 'wrap'
-                    }}>
-                        {renderPagination()}
-                    </div>
-                </>
-            ) : (
-                <p>📭 No data found...</p>
-            )}
-            </div>
-        </div>
+      <div style={{ padding: 20, color: "red" }}>❌ Error: {error}</div>
     );
+
+  return (
+    <div style={{ background: "#2d2d2d", minHeight: "100vh", color: "#fff" }}>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
+
+      <div style={{ padding: 20 }}>
+        <h2>🎯 Target Data (ใช้ API เดียวกับ Reports)</h2>
+
+        {/* Search Box */}
+        <div style={{ marginBottom: 20 }}>
+          <input
+            type="text"
+            placeholder="🔍 ค้นหา..."
+            value={filterText}
+            onChange={(e) => {
+              setFilterText(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{
+              padding: "8px 12px",
+              width: 280,
+              border: "1px solid #ccc",
+              borderRadius: 4,
+            }}
+          />
+          <span style={{ marginLeft: 10 }}>
+            Showing {filteredData.length} results
+          </span>
+        </div>
+
+        {/* PIE CHART BOX แบบเดียวกับ Reports */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              width: 320,
+              background: "#111827",
+              borderRadius: 12,
+              padding: "16px 8px",
+            }}
+          >
+            <h3 style={{ textAlign: "center", marginBottom: 12 }}>
+              สัดส่วนการตรวจจับ แบ่งตามกล้อง (Camera)
+            </h3>
+
+            {/* DEVICE PIE */}
+            <h4 style={{ textAlign: "center" }}>แบ่งตาม Device</h4>
+            <PieChart width={240} height={180}>
+              <Pie
+                data={pieByDevice}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="45%"
+                innerRadius={40}
+                outerRadius={60}
+                paddingAngle={2}
+                minAngle={10}
+                stroke="#fff"
+                strokeWidth={1}
+              >
+                {pieByDevice.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconSize={10} />
+            </PieChart>
+
+            {/* CAMERA PIE */}
+            <h4 style={{ textAlign: "center", marginTop: 10 }}>
+              แบ่งตาม Camera
+            </h4>
+            <PieChart width={240} height={180}>
+              <Pie
+                data={pieByCamera}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="45%"
+                innerRadius={40}
+                outerRadius={60}
+                paddingAngle={2}
+                minAngle={10}
+                stroke="#fff"
+              >
+                {pieByCamera.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconSize={10} />
+            </PieChart>
+          </div>
+        </div>
+
+        {/* TABLE */}
+        <div
+          style={{
+            overflowX: "auto",
+            overflowY: "auto",
+            maxHeight: 550,
+            background: "#fff",
+            color: "#000",
+            borderRadius: 6,
+          }}
+        >
+          <table
+            cellPadding={8}
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              minWidth: 900,
+            }}
+          >
+            <thead
+              style={{
+                background: "#e5e7eb",
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+              }}
+            >
+              <tr>
+                <th>No.</th>
+                <th>DeviceID</th>
+                <th>CameraID</th>
+                <th>Lat</th>
+                <th>Lng</th>
+                <th>Altitude</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+
+            <tbody ref={tableRef}>
+              {currentItems.map((d, i) => (
+                <tr key={d.id}>
+                  <td>{indexFirst + i + 1}</td>
+                  <td>{d.deviceId || "-"}</td>
+                  <td>{d.cameraId || "-"}</td>
+                  <td>{d.lat || "-"}</td>
+                  <td>{d.lng || "-"}</td>
+                  <td>{d.altitude || "-"}</td>
+                  <td>{d.lastSeen || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINATION */}
+        <div
+          style={{
+            marginTop: 20,
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+          }}
+        >
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => handlePageChange(i + 1)}
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #ccc",
+                borderRadius: 4,
+                background: currentPage === i + 1 ? "#007bff" : "#fff",
+                color: currentPage === i + 1 ? "#fff" : "#000",
+              }}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default MyDrone;

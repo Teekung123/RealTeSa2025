@@ -177,8 +177,10 @@ export default function Reports() {
                   width: "100%",
                   display: "flex",
                   justifyContent: "center",
+                  alignItems: "center",
                   paddingTop: 4,
                   paddingBottom: 4,
+                  minHeight: 210,
                 }}
               >
                 <PieChart width={220} height={185}>
@@ -189,7 +191,7 @@ export default function Reports() {
                     cx="50%"
                     cy="45%"
                     innerRadius={40}
-                    outerRadius={63}
+                    outerRadius={57}
                     paddingAngle={2}
                     minAngle={8}         // บังคับมุมขั้นต่ำให้ทุกชิ้นเห็นสี
                     stroke="#ffffff"     // เส้นแบ่งสีให้ชัดขึ้น
@@ -217,17 +219,19 @@ export default function Reports() {
 
           {/* ขวาบน: Pie แบ่งตาม Camera */}
           <div className="r-col-12 r-md-col-3 r-stack-3">
-            <Card title="สัดส่วนการตรวจจับ แบ่งตามกล้อง (Camera)">
+            <Card title="สัดส่วนการตรวจจับ แบ่งตาม Camera ">
               <div
                 style={{
                   width: "100%",
                   display: "flex",
                   justifyContent: "center",
+                  alignItems: "center",
                   paddingTop: 4,
                   paddingBottom: 4,
+                  minHeight: 210,
                 }}
               >
-                <PieChart width={220} height={170}>
+                <PieChart width={220} height={185}>
                   <Pie
                     data={pieByCamera}
                     dataKey="value"
@@ -235,7 +239,7 @@ export default function Reports() {
                     cx="50%"
                     cy="45%"
                     innerRadius={40}
-                    outerRadius={63}
+                    outerRadius={57}
                     paddingAngle={2}
                     minAngle={8}
                     stroke="#ffffff"
@@ -285,7 +289,7 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* กราฟเส้น: จำนวนการตรวจจับต่อวัน */}
+          {/* กราฟเส้น: จำนวนการตรวจจับต่อวัน
           <div className="r-col-12 r-md-col-6">
             <Card title="จำนวนการตรวจจับฝ่ายตรงข้าม / วัน">
               <div className="r-h-64">
@@ -304,7 +308,7 @@ export default function Reports() {
                 </ResponsiveContainer>
               </div>
             </Card>
-          </div>
+          </div> */}
 
           {/* ตาราง */}
           <div className="r-col-12">

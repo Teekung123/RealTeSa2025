@@ -8,13 +8,7 @@ import Header from "./component/Header.jsx";
 import Sidebar from "./component/Sidebar.jsx";
 import AlertsBox from "./component/AlertsBox.jsx";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -25,12 +19,6 @@ function App() {
       mapRef.current.flyTo(lat, lng, 15);
     }
   };
-
-  const [missionStates] = useState([
-    { id: "ภารกิจ 122", status: "Mission Started" },
-    { id: "ภารกิจ 121", status: "Mission Completed" },
-    { id: "ภารกิจ 120", status: "Path Deviation" },
-  ]);
 
   // drones จาก API
   const [drones, setDrones] = useState([]);
@@ -50,10 +38,12 @@ function App() {
         const mapped = list.map((t) => ({
           id: t._id,
           side: "enemy",
-          active: true,
+          active: true, // ถ้ามี field สถานะจริง ๆ ค่อยมาแก้ทีหลังได้
           lat: t.latitude,
           lng: t.longitude,
           lastSeen: t.timestamp,
+          deviceId: t.deviceId,
+          cameraId: t.cameraId,
         }));
 
         setDrones(mapped);
@@ -65,27 +55,35 @@ function App() {
     fetchTargets();
   }, []);
 
-  const COLORS = ["#60a5fa", "#9ca3af"];
+  // สีสำหรับกราฟ
+  const COLORS = ["#60a5fa", "#f97316", "#22c55e", "#a855f7", "#e11d48", "#fbbf24", "#10b981"];
 
-  const pieEnemy = useMemo(
-    () => [
-      { name: "ทำงาน", value: drones.filter((d) => d.active).length },
-      { name: "ไม่ทำงาน", value: 0 },
-    ],
-    [drones]
-  );
+  // ---------- Pie: แบ่งตาม Device ----------
+  const pieByDevice = useMemo(() => {
+    const map = {};
+    drones.forEach((d) => {
+      const key = d.deviceId || "ไม่ทราบ Device";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [drones]);
 
-  const pieUs = useMemo(
-    () => [
-      { name: "ทำงาน", value: 0 },
-      { name: "ไม่ทำงาน", value: 0 },
-    ],
-    []
-  );
+  // ---------- Pie: แบ่งตาม Camera ----------
+  const pieByCamera = useMemo(() => {
+    const map = {};
+    drones.forEach((d) => {
+      const key = d.cameraId || "ไม่ทราบกล้อง";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [drones]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
       <div style={{ display: "flex", flex: 1, padding: 10, gap: 10 }}>
@@ -106,109 +104,133 @@ function App() {
           <Map ref={mapRef} />
         </div>
 
-        {/* ขวา: Mission + Pie Enemy */}
+        {/* ขวา: กราฟวงกลม 2 อัน (Device + Camera) */}
         <div
           style={{
-            width: 200,
+            width: 260,
             display: "flex",
             flexDirection: "column",
             gap: 10,
           }}
         >
-          {/* Mission Panel */}
+          {/* Pie: Device */}
           <div
             style={{
               background: "#2d2d2d",
               padding: 10,
               borderRadius: 8,
               color: "#fff",
+              textAlign: "center",
+              flex: 1,
+
             }}
           >
             <div
               style={{
                 fontWeight: "bold",
-                textAlign: "center",
+                fontSize: 12,
                 marginBottom: 8,
               }}
             >
-              Mission State
+              สัดส่วนการตรวจจับ แบ่งตาม Device
             </div>
 
-            {missionStates.map((state, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#fff",
-                  color: "#000",
-                  marginBottom: 6,
-                  padding: 8,
-                  borderRadius: 4,
-                  fontSize: 11,
-                }}
-              >
-                <div
-                  style={{ textAlign: "center", fontWeight: "bold" }}
-                >
-                  {state.id}
-                </div>
-                <div style={{ textAlign: "center", fontSize: 10 }}>
-                  {state.status}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* PieChart Panel (Mini Pie Enemy) */}
-          <div
-            style={{
-              background: "#2d2d2d",
-              padding: 10,
-              borderRadius: 8,
-              flex: 1,
-              color: "#fff",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                fontWeight: "bold",
-                fontSize: 12,
-              }}
-            >
-              สถานะโดรน (ฝ่ายตรงข้าม)
-            </div>
-
-            {/* MINI PIE CHART */}
             <div
               style={{
                 width: "100%",
                 display: "flex",
                 justifyContent: "center",
-                marginTop: 6,
               }}
             >
-              <PieChart width={110} height={90}>
+              <PieChart width={200} height={150}>
                 <Pie
-                  data={pieEnemy}
+                  data={pieByDevice}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
-                  innerRadius={18}
-                  outerRadius={30}
+                  cy="45%"
+                  innerRadius={35}
+                  outerRadius={55}
                   paddingAngle={2}
+                  minAngle={8}
+                  stroke="#ffffff"
+                  strokeWidth={1}
                   labelLine={false}
                   label={false}
                 >
-                  {pieEnemy.map((_, i) => (
+                  {pieByDevice.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ fontSize: 8, padding: 4 }} />
+                <Tooltip
+                  wrapperStyle={{ fontSize: 10 }}
+                  contentStyle={{ padding: 8 }}
+                />
                 <Legend
                   verticalAlign="bottom"
-                  wrapperStyle={{ fontSize: 7 }}
-                  iconSize={7}
+                  wrapperStyle={{ fontSize: 9 }}
+                  iconSize={8}
+                />
+              </PieChart>
+            </div>
+          </div>
+
+          {/* Pie: Camera */}
+          <div
+            style={{
+              background: "#2d2d2d",
+              padding: 10,
+              borderRadius: 8,
+              color: "#fff",
+              textAlign: "center",
+              flex: 1,
+            }}
+          >
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: 12,
+                marginBottom: 8,
+              }}
+            >
+              สัดส่วนการตรวจจับ แบ่งตาม Camera
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <PieChart width={200} height={150}>
+                <Pie
+                  data={pieByCamera}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={35}
+                  outerRadius={55}
+                  paddingAngle={2}
+                  minAngle={8}
+                  stroke="#ffffff"
+                  strokeWidth={1}
+                  labelLine={false}
+                  label={false}
+                >
+                  {pieByCamera.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  wrapperStyle={{ fontSize: 10 }}
+                  contentStyle={{ padding: 8 }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  wrapperStyle={{ fontSize: 9 }}
+                  iconSize={8}
                 />
               </PieChart>
             </div>
