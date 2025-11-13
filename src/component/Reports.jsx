@@ -155,7 +155,7 @@ export default function Reports() {
           </p>
         )}
 
-        <div className="r-grid">
+        <div className="r-grid reports-top-center">
           {/* ซ้ายบน: Metrics รวม ๆ ของการตรวจจับ */}
           <div className="r-col-12 r-md-col-3 r-stack-3">
             <Card title="จำนวนการตรวจจับทั้งหมด">
@@ -268,26 +268,30 @@ export default function Reports() {
           {/* ช่องว่างสำรอง */}
           <div className="r-col-12 r-md-col-3" />
 
-          {/* กราฟเส้น: Altitude ตามเวลา */}
-          <div className="r-col-12 r-md-col-6">
-            <Card title="ความสูงของโดรนฝ่ายตรงข้ามตามเวลา (Altitude vs Time)">
-              <div className="r-h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={lineAltitude}>
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="altitude"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+         {/* กราฟเส้น: Altitude ตามเวลา */}
+          <div className="chart-wrapper-bottom">
+            <div className="r-card">
+              <h2>ความสูงของโดรนฝ่ายตรงข้ามตามเวลา (Altitude vs Time)</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={lineAltitude}>
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="altitude"
+                    stroke="#60a5fa"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+
+
+
+
 
           {/* กราฟเส้น: จำนวนการตรวจจับต่อวัน
           <div className="r-col-12 r-md-col-6">

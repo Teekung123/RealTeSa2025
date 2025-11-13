@@ -204,5 +204,32 @@
 html, body, #root { height: 100%; }
 body { background: #1e1e1e; } /* พื้นหลังทั้งเว็บ */
 
+/* จัดกราฟล่างให้อยู่ตรงกลาง */
+.chart-wrapper-bottom {
+  grid-column: 1 / -1;      /* ให้ span ทุกคอลัมน์ใน grid */
+  display: flex;
+  justify-content: center;  /* จัดกึ่งกลางแนวนอน */
+  margin-top: 20px;
+}
+
+.chart-wrapper-bottom .r-card {
+  width: 100%;
+  max-width: 900px;         /* จำกัดความกว้างไม่ให้แผ่ออกทั้งจอ */
+}
+
+/* จัด block ช่องเขียวให้มาชิดกลาง */
+.reports-top-center {
+  justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ให้การ์ดแต่ละอันแสดงเหมือนเดิม (ไม่ขยายเต็มจอ) */
+.reports-top-center > div {
+  flex: 0 1 auto;
+}
+
+
 
 
