@@ -1,6 +1,6 @@
 /**
  * ฟังก์ชันแปลงข้อมูลจาก Client เป็นรูปแบบที่บันทึกใน MongoDB
- * แยก collection ตามประเภทข้อมูล: Mydrone_location, Log_data_location, Camera_locations
+ * แยก collection ตามประเภทข้อมูล: mydrones, opponents, cameras
  * @param {Object|Array} parsedData - ข้อมูลที่ได้รับจาก Client
  * @returns {Object} { myDrones: Array, opponents: Array, cameras: Array } - ข้อมูลแยกตาม collection
  */

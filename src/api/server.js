@@ -37,9 +37,11 @@ app.use(express.urlencoded({ extended: true }));
 // ให้บริการ static files จากโฟลเดอร์ 'public'
 app.use(express.static('public'));
 
-// ให้บริการรูปภาพจากโฟลเดอร์ IMG
+// ให้บริการรูปภาพและวิดีโอจากโฟลเดอร์ IMG และ VIDEO
 app.use('/IMG', express.static(path.join(__dirname, '../../public/IMG')));
+app.use('/VIDEO', express.static(path.join(__dirname, '../../public/VIDEO')));
 console.log('📁 Serving images from:', path.join(__dirname, '../../public/IMG'));
+console.log('📁 Serving videos from:', path.join(__dirname, '../../public/VIDEO'));
 
 // Route หลัก
 app.get('/', (req, res) => {
@@ -55,7 +57,7 @@ app.get('/', (req, res) => {
 app.get('/api/targets', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Log_data_location');
+    const collection = db.collection('opponents');
     const targets = await collection.find({
       deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' },
       latitude: { $exists: true, $ne: null },
@@ -76,7 +78,7 @@ app.get('/api/targets', async (req, res) => {
 app.get('/api/MyDrone', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Mydrone_location');
+    const collection = db.collection('mydrones');
     const drones = await collection.find({
       deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' },
       latitude: { $exists: true, $ne: null },
@@ -97,7 +99,7 @@ app.get('/api/MyDrone', async (req, res) => {
 app.get('/api/cameras', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Camera_locations');
+    const collection = db.collection('cameras');
     // รองรับทั้ง cameraId และ deviceId ที่ขึ้นต้นด้วย CAM-
     const cameras = await collection.find({
       $or: [
@@ -127,11 +129,11 @@ app.get('/api/all-assets', async (req, res) => {
     const db = mongoose.connection.useDb('Wep_socket_DB');
     
     // ดึงข้อมูลโดรนฝั่งเรา
-    const myDroneCollection = db.collection('Mydrone_location');
+    const myDroneCollection = db.collection('mydrones');
     const drones = await myDroneCollection.find({}).toArray();
     
     // ดึงข้อมูลกล้อง
-    const cameraCollection = db.collection('Camera_locations');
+    const cameraCollection = db.collection('cameras');
     const cameras = await cameraCollection.find({
       $or: [
         { cameraId: { $exists: true, $ne: null } },
@@ -169,7 +171,7 @@ app.get('/api/all-assets', async (req, res) => {
 app.get('/api/detections', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Detections');
+    const collection = db.collection('detections');
     
     const detections = await collection.find({})
       .sort({ timestamp: -1 })
@@ -198,7 +200,7 @@ app.post('/api/alerts', async (req, res) => {
     const { deviceId, latitude, longitude, altitude, type, pointCount } = req.body;
     
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Log_data_location');
+    const collection = db.collection('opponents');
     
     const alert = {
       deviceId,
@@ -230,7 +232,7 @@ app.get('/api/get/alerts', async (req, res) => {
     const skip = (page - 1) * limit;
     
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Log_data_location');
+    const collection = db.collection('opponents');
     
     const alerts = await collection.find({
       deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' }

@@ -30,12 +30,12 @@ mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ เชื่อมต่อ MongoDB สำเร็จ! (WebSocket Server)');
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    myDroneColl = db.collection('Mydrone_location');
-    targetColl = db.collection('Log_data_location');
-    cameraColl = db.collection('Camera_locations');
-    console.log("✅ Collection 'Mydrone_location' is ready.");
-    console.log("✅ Collection 'Log_data_location' is ready.");
-    console.log("✅ Collection 'Camera_locations' is ready.");
+    myDroneColl = db.collection('mydrones');
+    targetColl = db.collection('opponents');
+    cameraColl = db.collection('cameras');
+    console.log("✅ Collection 'mydrones' is ready.");
+    console.log("✅ Collection 'opponents' is ready.");
+    console.log("✅ Collection 'cameras' is ready.");
   })
   .catch((err) => {
     console.error('❌ เชื่อมต่อ MongoDB ไม่สำเร็จ:', err);

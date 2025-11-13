@@ -16,7 +16,7 @@ async function checkDetections() {
     console.log('✅ เชื่อมต่อ MongoDB สำเร็จ!');
     
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const detectionsCollection = db.collection('Detections');
+    const detectionsCollection = db.collection('detections');
     
     const detections = await detectionsCollection.find({}).sort({ timestamp: -1 }).limit(5).toArray();
     

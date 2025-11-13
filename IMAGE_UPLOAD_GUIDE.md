@@ -178,7 +178,7 @@ node testImageSend.js
 
 ### 3. ตรวจสอบผลลัพธ์:
 - รูปภาพจะถูกบันทึกที่: `D:\RealTeSa2025\public\IMG\`
-- ข้อมูลจะถูกบันทึกใน MongoDB collection: `Detections`
+- ข้อมูลจะถูกบันทึกใน MongoDB collection: `detections`
 - รูปจะแสดงบนแผนที่เมื่อคลิกที่ marker
 
 ## URL สำหรับเข้าถึงรูปภาพ

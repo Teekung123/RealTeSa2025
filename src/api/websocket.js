@@ -8,11 +8,16 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// สร้างโฟลเดอร์สำหรับเก็บรูปภาพ
+// สร้างโฟลเดอร์สำหรับเก็บรูปภาพและวิดีโอ
 const IMAGE_DIR = path.resolve(__dirname, '../../public/IMG');
+const VIDEO_DIR = path.resolve(__dirname, '../../public/VIDEO');
 if (!fs.existsSync(IMAGE_DIR)) {
   fs.mkdirSync(IMAGE_DIR, { recursive: true });
   console.log('📁 สร้างโฟลเดอร์:', IMAGE_DIR);
+}
+if (!fs.existsSync(VIDEO_DIR)) {
+  fs.mkdirSync(VIDEO_DIR, { recursive: true });
+  console.log('📁 สร้างโฟลเดอร์:', VIDEO_DIR);
 }
 
 /**
@@ -42,6 +47,37 @@ function saveImage(base64Data, deviceId) {
     return imageUrl;
   } catch (error) {
     console.error('❌ เกิดข้อผิดพลาดในการบันทึกรูปภาพ:', error);
+    return null;
+  }
+}
+
+/**
+ * บันทึกวิดีโอจาก base64
+ * @param {String} base64Data - ข้อมูลวิดีโอ base64
+ * @param {String} deviceId - ID ของอุปกรณ์
+ * @returns {String} URL ของวิดีโอที่บันทึก
+ */
+function saveVideo(base64Data, deviceId) {
+  try {
+    // ลบ prefix data:video/...;base64, ออก (ถ้ามี)
+    const base64Video = base64Data.replace(/^data:video\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Video, 'base64');
+    
+    // สร้างชื่อไฟล์ด้วย timestamp และ deviceId
+    const timestamp = Date.now();
+    const filename = `${deviceId}_${timestamp}.mp4`;
+    const filepath = path.join(VIDEO_DIR, filename);
+    
+    // บันทึกไฟล์
+    fs.writeFileSync(filepath, buffer);
+    
+    // return URL แบบเต็มสำหรับเข้าถึงจาก browser
+    const videoUrl = `http://localhost:3000/VIDEO/${filename}`;
+    console.log('✅ บันทึกวิดีโอ:', videoUrl, `(${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    
+    return videoUrl;
+  } catch (error) {
+    console.error('❌ เกิดข้อผิดพลาดในการบันทึกวิดีโอ:', error);
     return null;
   }
 }
@@ -95,28 +131,55 @@ export function setupWebSocket(port, getCollection, socketIO, mongooseInstance =
           }
         }
         
+        // ตรวจสอบว่ามีวิดีโอส่งมาด้วยหรือไม่
+        let videoUrl = null;
+        if (parsedData.videoData || parsedData.video || parsedData.videoBase64) {
+          const videoData = parsedData.videoData || parsedData.video || parsedData.videoBase64;
+          const deviceId = parsedData.deviceId || parsedData.cameraId || 'unknown';
+          videoUrl = saveVideo(videoData, deviceId);
+          
+          if (videoUrl) {
+            // เพิ่ม videoUrl เข้าไปใน parsedData
+            if (Array.isArray(parsedData)) {
+              parsedData.forEach(item => {
+                item.videoUrl = videoUrl;
+              });
+            } else {
+              parsedData.videoUrl = videoUrl;
+            }
+          }
+        }
+        
         // แสดงข้อมูลกล้องที่ตรวจจับ (ถ้ามี)
         if (Array.isArray(parsedData)) {
           parsedData.forEach(d => {
             if (d.cameraId || d.detectedBy) {
-              console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${d.cameraId || d.detectedBy} -> เป้าหมาย: ${d.deviceId || 'unknown'}${d.imageUrl ? ' (มีรูปภาพ)' : ''}`);
+              const media = [];
+              if (d.imageUrl) media.push('รูปภาพ');
+              if (d.videoUrl) media.push('วิดีโอ');
+              const mediaStr = media.length > 0 ? ` (มี${media.join(' และ ')})` : '';
+              console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${d.cameraId || d.detectedBy} -> เป้าหมาย: ${d.deviceId || 'unknown'}${mediaStr}`);
             }
           });
         } else if (parsedData.cameraId || parsedData.detectedBy) {
-          console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${parsedData.cameraId || parsedData.detectedBy} -> เป้าหมาย: ${parsedData.deviceId || 'unknown'}${parsedData.imageUrl ? ' (มีรูปภาพ)' : ''}`);
+          const media = [];
+          if (parsedData.imageUrl) media.push('รูปภาพ');
+          if (parsedData.videoUrl) media.push('วิดีโอ');
+          const mediaStr = media.length > 0 ? ` (มี${media.join(' และ ')})` : '';
+          console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${parsedData.cameraId || parsedData.detectedBy} -> เป้าหมาย: ${parsedData.deviceId || 'unknown'}${mediaStr}`);
         }
         
-        // บันทึก detection ลง collection Detections (ถ้ามีรูปภาพ)
-        if (imageUrl && (parsedData.cameraId || parsedData.detectedBy)) {
+        // บันทึก detection ลง collection Detections (ถ้ามีรูปภาพหรือวิดีโอ)
+        if ((imageUrl || videoUrl) && (parsedData.cameraId || parsedData.detectedBy)) {
           try {
             // เข้าถึง database โดยตรงจาก collection ที่มีอยู่
             let detectionsCollection;
             if (mongooseInstance) {
               const db = mongooseInstance.connection.useDb('Wep_socket_DB');
-              detectionsCollection = db.collection('Detections');
+              detectionsCollection = db.collection('detections');
             } else if (collections.myDroneColl) {
               const db = collections.myDroneColl.db || collections.myDroneColl.collection?.conn?.db;
-              detectionsCollection = db.collection('Detections');
+              detectionsCollection = db.collection('detections');
             } else {
               throw new Error('ไม่สามารถเข้าถึง database');
             }
@@ -133,13 +196,15 @@ export function setupWebSocket(port, getCollection, socketIO, mongooseInstance =
               status: parsedData.status || 'active',
               confidence: parsedData.confidence || null,
               imageUrl: imageUrl,
+              videoUrl: videoUrl,
               description: parsedData.description || `Detected by ${parsedData.cameraId || 'camera'}`,
               timestamp: new Date(),
               time: parsedData.time || Math.floor(Date.now() / 1000)
             };
             
             await detectionsCollection.insertOne(detectionRecord);
-            console.log('✅ [WebSocket] บันทึก detection พร้อมรูปภาพสำเร็จ');
+            const mediaType = imageUrl && videoUrl ? 'รูปภาพและวิดีโอ' : (videoUrl ? 'วิดีโอ' : 'รูปภาพ');
+            console.log(`✅ [WebSocket] บันทึก detection พร้อม${mediaType}สำเร็จ`);
           } catch (detectionErr) {
             console.error('❌ [WebSocket] ไม่สามารถบันทึก detection:', detectionErr);
           }
@@ -148,10 +213,11 @@ export function setupWebSocket(port, getCollection, socketIO, mongooseInstance =
         // ใช้ฟังก์ชันแปลงข้อมูล
         const { myDrones, opponents, cameras } = transformDataToEntries2(parsedData);
         
-        // เพิ่ม imageUrl เข้าไปใน opponents ถ้ามี
-        if (imageUrl && opponents.length > 0) {
+        // เพิ่ม imageUrl และ videoUrl เข้าไปใน opponents ถ้ามี
+        if ((imageUrl || videoUrl) && opponents.length > 0) {
           opponents.forEach(opponent => {
-            opponent.imageUrl = imageUrl;
+            if (imageUrl) opponent.imageUrl = imageUrl;
+            if (videoUrl) opponent.videoUrl = videoUrl;
           });
         }
 

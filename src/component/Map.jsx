@@ -16,7 +16,9 @@ const Map = forwardRef((props, ref) => {
   const realtimeMarkersRef = useRef({}); // เก็บ real-time markers สำหรับ drone/opponent
   const realtimePathsRef = useRef({}); // เก็บเส้นทาง real-time
   const timeControlRef = useRef(null); // เก็บ Timeline control
+  const timedLayerRef = useRef(null); // เก็บ timed layer
   const [loading, setLoading] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false); // สถานะการเชื่อมต่อ WebSocket
 
   // เปิดเผยฟังก์ชันให้ parent component เรียกใช้
   useImperativeHandle(ref, () => ({
@@ -183,7 +185,7 @@ const Map = forwardRef((props, ref) => {
     const map = L.map(mapRef.current, {
       center: [13.7563, 100.5018],
       zoom: 12,
-      zoomControl: true
+      zoomControl: false  // ปิดปุ่มซูม
     });
 
     mapInstanceRef.current = map;
@@ -292,25 +294,43 @@ const Map = forwardRef((props, ref) => {
                 })
               }).addTo(mapInstanceRef.current);
               
-              // Popup พร้อมรูปภาพ
+              // Popup พร้อมรูปภาพและวิดีโอ
+              let mediaContent = '';
+              if (detection.imageUrl) {
+                mediaContent += `
+                  <div style="margin: 10px 0;">
+                    <b>📷 รูปภาพ:</b><br>
+                    <img src="${detection.imageUrl}" 
+                         style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer; margin-top: 5px;" 
+                         onclick="window.open('${detection.imageUrl}', '_blank')"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                    />
+                    <div style="display: none; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
+                      <span style="font-size: 48px;">📷</span><br>
+                      <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
+                    </div>
+                  </div>
+                `;
+              }
+              
+              if (detection.videoUrl) {
+                mediaContent += `
+                  <div style="margin: 10px 0;">
+                    <b>🎥 วิดีโอ:</b><br>
+                    <video controls style="width: 100%; max-width: 300px; border-radius: 6px; margin-top: 5px;">
+                      <source src="${detection.videoUrl}" type="video/mp4">
+                      เบราว์เซอร์ไม่รองรับการเล่นวิดีโอ
+                    </video>
+                  </div>
+                `;
+              }
+              
               const popupContent = `
                 <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
                   <b style="font-size: 14px; color: #3b82f6;">📷 ${detection.cameraId || detection.deviceId}</b><br>
                   <b>Detection Record</b><br>
                   <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
-                  ${detection.imageUrl ? `
-                    <div style="margin: 10px 0;">
-                      <img src="${detection.imageUrl}" 
-                           style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer;" 
-                           onclick="window.open('${detection.imageUrl}', '_blank')"
-                           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-                      />
-                      <div style="display: none; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
-                        <span style="font-size: 48px;">📷</span><br>
-                        <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
-                      </div>
-                    </div>
-                  ` : ''}
+                  ${mediaContent}
                   <b>📍 รายละเอียด</b><br>
                   🎯 เป้าหมาย: ${detection.detectedDevice || detection.targetId || 'N/A'}<br>
                   📊 ประเภท: ${detection.type || 'detection'}<br>
@@ -365,7 +385,6 @@ const Map = forwardRef((props, ref) => {
               opacity: 0.6
             }),
             pointToLayer: (feature, latlng) => {
-              // ใช้ circleMarker สำหรับจุดที่เคลื่อนไหว
               return L.circleMarker(latlng, {
                 radius: 8,
                 fillColor: feature.properties.color,
@@ -384,7 +403,10 @@ const Map = forwardRef((props, ref) => {
             updateTimeDimension: true,
             addlastPoint: true,
             waitForReady: true,
-            duration: "PT1M"
+            duration: "PT1M",
+            updateCallback: function(layer) {
+              return layer;
+            }
           });
           
           timedLayer.addTo(mapInstanceRef.current);
@@ -406,17 +428,17 @@ const Map = forwardRef((props, ref) => {
             timeDimension.setCurrentTime(availableTimes[0].getTime());
           }
           
-          // ลบ Timeline Control เก่าถ้ามี
+          // ลบ Timeline Control เก่าก่อน (ถ้ามี)
           if (timeControlRef.current) {
             mapInstanceRef.current.removeControl(timeControlRef.current);
             timeControlRef.current = null;
           }
           
-          // เพิ่ม Timeline Control (1 ตัว)
+          // เพิ่ม Timeline Control ใหม่
           const playerControl = new L.Control.TimeDimension({
             timeDimension: timeDimension,
             playerOptions: {
-              transitionTime: 1000,
+              transitionTime: 3000,
               loop: true,
               startOver: true
             }
@@ -441,6 +463,12 @@ const Map = forwardRef((props, ref) => {
       
       socket.on('connect', () => {
         console.log('✅ [Map] เชื่อมต่อ Socket.IO สำเร็จ');
+        setWsConnected(true);
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('❌ [Map] ตัดการเชื่อมต่อ Socket.IO');
+        setWsConnected(false);
       });
       
       socket.on('newData', (data) => {
@@ -449,12 +477,12 @@ const Map = forwardRef((props, ref) => {
         if (Array.isArray(data)) {
           data.forEach(item => {
             const { deviceId, latitude, longitude, altitude, type, cameraId, 
-                    name, status, direction, fov, detectionRange, isCameraData, imageUrl } = item;
+                    name, status, direction, fov, detectionRange, isCameraData, imageUrl, videoUrl } = item;
             
             if (deviceId && latitude && longitude) {
-              // ถ้ามี imageUrl แสดงว่าเป็น detection พร้อมรูปภาพ
-              if (imageUrl && cameraId) {
-                console.log('📷 [Map] ได้รับ detection พร้อมรูปภาพ:', deviceId);
+              // ถ้ามี imageUrl หรือ videoUrl แสดงว่าเป็น detection พร้อมมีเดีย
+              if ((imageUrl || videoUrl) && cameraId) {
+                console.log('📷 [Map] ได้รับ detection พร้อม', imageUrl ? 'รูปภาพ' : '', videoUrl ? 'วิดีโอ' : '', ':', deviceId);
                 
                 // สร้าง detection marker ทันที
                 const detectionMarker = L.marker([latitude, longitude], {
@@ -473,14 +501,14 @@ const Map = forwardRef((props, ref) => {
                   })
                 }).addTo(mapInstanceRef.current);
                 
-                const popupContent = `
-                  <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
-                    <b style="font-size: 14px; color: #3b82f6;">📷 ${cameraId}</b><br>
-                    <b>Detection Record (Real-time)</b><br>
-                    <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                // สร้าง media content
+                let mediaContent = '';
+                if (imageUrl) {
+                  mediaContent += `
                     <div style="margin: 10px 0;">
+                      <b>📷 รูปภาพ:</b><br>
                       <img src="${imageUrl}" 
-                           style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer;" 
+                           style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer; margin-top: 5px;" 
                            onclick="window.open('${imageUrl}', '_blank')"
                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
                       />
@@ -489,6 +517,27 @@ const Map = forwardRef((props, ref) => {
                         <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
                       </div>
                     </div>
+                  `;
+                }
+                
+                if (videoUrl) {
+                  mediaContent += `
+                    <div style="margin: 10px 0;">
+                      <b>🎥 วิดีโอ:</b><br>
+                      <video controls style="width: 100%; max-width: 300px; border-radius: 6px; margin-top: 5px;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        เบราว์เซอร์ไม่รองรับการเล่นวิดีโอ
+                      </video>
+                    </div>
+                  `;
+                }
+                
+                const popupContent = `
+                  <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
+                    <b style="font-size: 14px; color: #3b82f6;">📷 ${cameraId}</b><br>
+                    <b>Detection Record (Real-time)</b><br>
+                    <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                    ${mediaContent}
                     <b>📍 รายละเอียด</b><br>
                     🎯 เป้าหมาย: ${item.targetId || deviceId}<br>
                     📊 ประเภท: ${type || 'detection'}<br>
@@ -506,7 +555,7 @@ const Map = forwardRef((props, ref) => {
                 // เก็บ marker ไว้
                 realtimeMarkersRef.current[`DETECTION-${deviceId}-${Date.now()}`] = detectionMarker;
                 
-                console.log('✅ [Map] เพิ่ม detection marker พร้อมรูปภาพแล้ว');
+                console.log('✅ [Map] เพิ่ม detection marker พร้อมมีเดียแล้ว');
                 return; // ข้ามการสร้าง marker ปกติ
               }
               
@@ -558,6 +607,7 @@ const Map = forwardRef((props, ref) => {
       
       socket.on('disconnect', () => {
         console.log('❌ [Map] ตัดการเชื่อมต่อ Socket.IO');
+        setWsConnected(false);
       });
       
       return socket;
@@ -963,9 +1013,9 @@ const Map = forwardRef((props, ref) => {
               return;
             }
             
-            // ไม่วาดเส้นทาง (ลบออก)
+            // ไม่วาดเส้นทางแบบคงที่ ให้ timeline วาดแทน
             
-            // จุดเริ่มต้น
+            // จุดเริ่มต้น (แสดงเฉพาะจุดเริ่มต้น)
             L.circleMarker(coords[0], {
               radius: 8,
               fillColor: color,
@@ -1053,14 +1103,59 @@ const Map = forwardRef((props, ref) => {
   }, []);
 
   return (
-    <div 
-      ref={mapRef} 
-      style={{ 
-        height: '100%', 
-        width: '100%',
-        background: '#0b2e13'
-      }}
-    />
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+      {/* Connection Status Indicator */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        zIndex: 1000,
+        background: wsConnected ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+        backdropFilter: 'blur(10px)',
+        color: 'white',
+        padding: '6px 10px',
+        borderRadius: '6px',
+        fontSize: '12px',
+        fontWeight: '600',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        transition: 'all 0.3s ease'
+      }}>
+        <div style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: 'white',
+          animation: wsConnected ? 'pulse 2s infinite' : 'none'
+        }} />
+        {wsConnected ? 'เชื่อมต่อ' : 'ออฟไลน์'}
+      </div>
+
+      {/* Map Container */}
+      <div 
+        ref={mapRef} 
+        style={{ 
+          height: '100%', 
+          width: '100%',
+          background: '#0b2e13'
+        }}
+      />
+      
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(1.2);
+          }
+        }
+      `}</style>
+    </div>
   );
 });
 
