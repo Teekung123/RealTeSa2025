@@ -9,6 +9,7 @@ export function transformDataToEntries2(parsedData) {
 
   dataArray.forEach((d) => {
     const deviceId = d.deviceId || "unknown_device";
+    const cameraId = d.cameraId || d.detectedBy || null; // เพิ่ม cameraId
     const t = d.time || 0;
     const lat = d.latitude;
     const lon = d.longitude;
@@ -21,6 +22,7 @@ export function transformDataToEntries2(parsedData) {
       for (let i = 0; i < count; i++) {
         allEntries.push({
             deviceId,
+            cameraId, // เพิ่มฟิลด์ cameraId
             time: Array.isArray(t) ? t[i] : t + i,
             latitude: lat[i] ?? 0,
             longitude: lon[i] ?? 0,
@@ -33,6 +35,7 @@ export function transformDataToEntries2(parsedData) {
     else if (typeof lat === "number" && typeof lon === "number") {
       allEntries.push({
         deviceId,
+        cameraId, // เพิ่มฟิลด์ cameraId
         time: t,
         latitude: lat ?? 0,
         longitude: lon ?? 0,

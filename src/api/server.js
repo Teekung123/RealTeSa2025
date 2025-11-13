@@ -42,7 +42,6 @@ app.get('/', (req, res) => {
 });
 
 // ============ TARGET API Routes ============
-
 // GET - ดึงข้อมูล target ทั้งหมด (ฝั่งตรงข้าม)
 app.get('/api/targets', async (req, res) => {
   try {
@@ -85,9 +84,47 @@ app.get('/api/MyDrone', async (req, res) => {
   }
 });
 
+// GET - ดึงข้อมูลกล้องทั้งหมด
+app.get('/api/cameras', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Camera_locations');
+    const cameras = await collection.find({
+      cameraId: { $exists: true, $ne: null },
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null }
+    }).toArray();
+
+    res.json({ 
+      success: true, 
+      count: cameras.length,
+      data: cameras 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 // ============ ALERTS API Routes ============
+// GET - ดึงตำแหน่งกล้อง
+app.get('/api/camera/position', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Camera_position');
+    const cameraPositions = await collection.find({}).toArray();
 
+    res.json({ 
+      success: true, 
+      count: cameraPositions.length,
+      data: cameraPositions 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============ ALERTS API Routes ============
 // POST - บันทึก alert ใหม่
 app.post('/api/alerts', async (req, res) => {
   try {
@@ -152,6 +189,8 @@ app.get('/api/get/alerts', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+
 
 // Route สำหรับจัดการ 404
 app.use((req, res) => {

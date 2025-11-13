@@ -30,6 +30,17 @@ export function setupWebSocket(port, getCollection, socketIO) {
       try {
         const parsedData = JSON.parse(message.toString());
         console.log(`📦 [WebSocket] รับข้อมูล: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
+        
+        // แสดงข้อมูลกล้องที่ตรวจจับ (ถ้ามี)
+        if (Array.isArray(parsedData)) {
+          parsedData.forEach(d => {
+            if (d.cameraId || d.detectedBy) {
+              console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${d.cameraId || d.detectedBy} -> เป้าหมาย: ${d.deviceId || 'unknown'}`);
+            }
+          });
+        } else if (parsedData.cameraId || parsedData.detectedBy) {
+          console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${parsedData.cameraId || parsedData.detectedBy} -> เป้าหมาย: ${parsedData.deviceId || 'unknown'}`);
+        }
 
         // ใช้ฟังก์ชันแปลงข้อมูล
         const allEntries = transformDataToEntries2(parsedData);
