@@ -89,11 +89,17 @@ app.get('/api/cameras', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
     const collection = db.collection('Camera_locations');
+    // รองรับทั้ง cameraId และ deviceId ที่ขึ้นต้นด้วย CAM-
     const cameras = await collection.find({
-      cameraId: { $exists: true, $ne: null },
+      $or: [
+        { cameraId: { $exists: true, $ne: null } },
+        { deviceId: { $regex: /^CAM-/i } }
+      ],
       latitude: { $exists: true, $ne: null },
       longitude: { $exists: true, $ne: null }
     }).toArray();
+
+    console.log('📷 [API] พบกล้อง:', cameras.length, 'ตัว');
 
     res.json({ 
       success: true, 
@@ -101,28 +107,12 @@ app.get('/api/cameras', async (req, res) => {
       data: cameras 
     });
   } catch (error) {
+    console.error('❌ [API] Error fetching cameras:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 
-// ============ ALERTS API Routes ============
-// GET - ดึงตำแหน่งกล้อง
-app.get('/api/camera/position', async (req, res) => {
-  try {
-    const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('Camera_position');
-    const cameraPositions = await collection.find({}).toArray();
-
-    res.json({ 
-      success: true, 
-      count: cameraPositions.length,
-      data: cameraPositions 
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // ============ ALERTS API Routes ============
 // POST - บันทึก alert ใหม่

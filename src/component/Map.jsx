@@ -1,5 +1,6 @@
 import { useEffect, useRef , useState, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-timedimension';
@@ -12,6 +13,9 @@ const Map = forwardRef((props, ref) => {
   const markersRef = useRef({}); // เก็บ markers แยกตาม deviceId
   const alertPathsRef = useRef({}); // เก็บเส้นทาง alerts แยกตาม deviceId
   const alertPointsRef = useRef({}); // เก็บจุดของ alerts แต่ละตัว
+  const realtimeMarkersRef = useRef({}); // เก็บ real-time markers สำหรับ drone/opponent
+  const realtimePathsRef = useRef({}); // เก็บเส้นทาง real-time
+  const timeControlRef = useRef(null); // เก็บ Timeline control
   const [loading, setLoading] = useState(true);
 
   // เปิดเผยฟังก์ชันให้ parent component เรียกใช้
@@ -25,7 +29,7 @@ const Map = forwardRef((props, ref) => {
     },
     
     // เพิ่ม marker ที่ยังไม่หาย
-    addPersistentMarker: (deviceId, lat, lng, type) => {
+    addPersistentMarker: (deviceId, lat, lng, type, altitude = 0, cameraId = 'N/A') => {
       if (!mapInstanceRef.current) return;
       
       // ถ้ามี marker เก่าอยู่แล้ว ลบทิ้ง 
@@ -35,8 +39,17 @@ const Map = forwardRef((props, ref) => {
       
       // กำหนดสีตาม type (สำหรับ Alerts - สีแดง)
       let color = '#ef4444'; // แดง (danger)
-      if (type === 'warning') color = '#f59e0b'; // ส้ม
-      if (type === 'success') color = '#10b981'; // เขียว
+      let statusText = 'อันตราย';
+      if (type === 'warning') {
+        color = '#f59e0b'; // ส้ม
+        statusText = 'เตือน';
+      }
+      if (type === 'success') {
+        color = '#10b981'; // เขียว
+        statusText = 'ปลอดภัย';
+      }
+      
+      const detectedTime = new Date().toLocaleString('th-TH');
       
       // สร้าง marker ใหม่
       const marker = L.marker([lat, lng], {
@@ -71,6 +84,21 @@ const Map = forwardRef((props, ref) => {
         })
       }).addTo(mapInstanceRef.current);
       
+      // เพิ่ม Popup รายละเอียด
+      marker.bindPopup(`
+        <div style="font-size: 12px; line-height: 1.6;">
+          <b style="font-size: 14px; color: ${color};">🚨 ${deviceId}</b><br>
+          <b>แจ้งเตือน</b><br>
+          <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+          <b>📍 จุดตรวจจับ</b><br>
+          ⏰ เวลา: ${detectedTime}<br>
+          📊 สถานะ: <span style="color: ${color}; font-weight: bold;">${statusText}</span><br>
+          📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
+          ✈️ ระดับความสูง: ${altitude} m<br>
+          📷 ตรวจจับโดย: ${cameraId}
+        </div>
+      `);
+      
       // เก็บ marker ไว้
       markersRef.current[deviceId] = marker;
       
@@ -88,7 +116,7 @@ const Map = forwardRef((props, ref) => {
       const coords = alertPointsRef.current[deviceId].map(p => [p.lat, p.lng]);
       if (coords.length > 1) {
         const polyline = L.polyline(coords, {
-          color: '#ef4444', // สีแดงสำหรับ Alerts
+          color: color, // ใช้สีตาม type
           weight: 3,
           opacity: 0.7,
           dashArray: '5, 10'
@@ -159,13 +187,13 @@ const Map = forwardRef((props, ref) => {
     // เริ่มต้นด้วย Satellite
     satelliteLayer.addTo(map);
 
-    // 2) Init TimeDimension
+    // Init TimeDimension
     const timeDimension = new L.TimeDimension({
-      period: "PT10S" // step ทุก 10 วินาที
+      period: "PT10S"
     });
     map.timeDimension = timeDimension;
 
-    // 3) ดึงข้อมูลจาก MongoDB
+    // ดึงข้อมูลจาก MongoDB
     const loadMapData = async () => {
       try {
         console.log('🔄 กำลังโหลดข้อมูล...');
@@ -178,8 +206,14 @@ const Map = forwardRef((props, ref) => {
         const opponentResponse = await axios.get('http://localhost:3000/api/targets');
         const opponentData = opponentResponse.data.data || [];
         
+        // ดึงข้อมูลกล้อง (สีน้ำเงิน)
+        const cameraResponse = await axios.get('http://localhost:3000/api/cameras');
+        const cameraData = cameraResponse.data.data || [];
+        
         console.log('🟢 My Drone Data:', myDroneData.length, 'records');
         console.log('🔴 Opponent Data:', opponentData.length, 'records');
+        console.log('📷 Camera Data:', cameraData.length, 'records');
+        console.log('📷 Camera Raw Data:', JSON.stringify(cameraData, null, 2));
         
         // แปลงข้อมูลเป็น GeoJSON
         const myDroneFeatures = convertToGeoJSON(myDroneData, 'drone', '#10b981');
@@ -200,8 +234,10 @@ const Map = forwardRef((props, ref) => {
         // วาดข้อมูลฝั่งตรงข้าม (สีแดง)
         drawDronePaths(mapInstanceRef.current, opponentFeatures, '#ef4444', '🎯 Opponent');
         
-        // สร้าง GeoJSON FeatureCollection สำหรับ TimeDimension
-        // Filter เฉพาะ features ที่มี coordinates ถูกต้อง
+        // วาดกล้อง (สีน้ำเงิน)
+        drawCameras(mapInstanceRef.current, cameraData);
+        
+        // เพิ่ม Timeline Control (1 ตัว)
         const validMyDroneFeatures = myDroneFeatures.filter(f => {
           if (!f.properties.id || f.properties.id === 'undefined' || f.properties.id === 'unknown_device') {
             return false;
@@ -209,10 +245,7 @@ const Map = forwardRef((props, ref) => {
           if (f.geometry.type === 'LineString') {
             return f.geometry.coordinates && f.geometry.coordinates.length >= 2;
           }
-          if (f.geometry.type === 'Point') {
-            return f.geometry.coordinates && f.geometry.coordinates.length === 2;
-          }
-          return false;
+          return true;
         });
         
         const validOpponentFeatures = opponentFeatures.filter(f => {
@@ -222,96 +255,85 @@ const Map = forwardRef((props, ref) => {
           if (f.geometry.type === 'LineString') {
             return f.geometry.coordinates && f.geometry.coordinates.length >= 2;
           }
-          if (f.geometry.type === 'Point') {
-            return f.geometry.coordinates && f.geometry.coordinates.length === 2;
-          }
-          return false;
+          return true;
         });
-        
-        console.log('✅ Valid My Drone Features:', validMyDroneFeatures.length);
-        console.log('✅ Valid Opponent Features:', validOpponentFeatures.length);
         
         const allFeatures = [...validMyDroneFeatures, ...validOpponentFeatures];
         
-        if (allFeatures.length === 0) {
-          console.warn('⚠️ No valid features for timeline');
-          setLoading(false);
-          return;
-        }
-        
-        const geojsonData = {
-          type: "FeatureCollection",
-          features: allFeatures
-        };
-        
-        // สร้าง GeoJSON Layer
-        const geoJsonLayer = L.geoJson(geojsonData, {
-          style: feature => ({ 
-            color: feature.properties.color, 
-            weight: 4 
-          }),
-          pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, { 
-              radius: 8, 
-              fillOpacity: 1,
-              fillColor: feature.properties.color,
-              color: '#fff',
-              weight: 2
-            });
-          },
-          onEachFeature: (feature, layer) => {
-            layer.bindPopup(`<b>${feature.properties.id}</b><br>${feature.properties.type}`);
-          },
-          filter: (feature) => {
-            // Double check coordinates
-            if (feature.geometry.type === 'Point') {
-              const coords = feature.geometry.coordinates;
-              return coords && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1]);
+        if (allFeatures.length > 0) {
+          const geojsonData = {
+            type: "FeatureCollection",
+            features: allFeatures
+          };
+          
+          const geoJsonLayer = L.geoJson(geojsonData, {
+            style: feature => ({ 
+              color: feature.properties.color, 
+              weight: 3,
+              opacity: 0.6
+            }),
+            pointToLayer: (feature, latlng) => {
+              // ใช้ circleMarker สำหรับจุดที่เคลื่อนไหว
+              return L.circleMarker(latlng, {
+                radius: 8,
+                fillColor: feature.properties.color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+              });
+            },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>${feature.properties.id}</b><br>${feature.properties.type}`);
             }
-            return true;
+          });
+          
+          const timedLayer = L.timeDimension.layer.geoJson(geoJsonLayer, {
+            updateTimeDimension: true,
+            addlastPoint: true,
+            waitForReady: true,
+            duration: "PT1M"
+          });
+          
+          timedLayer.addTo(mapInstanceRef.current);
+          
+          // ตั้งค่าเวลา
+          const availableTimes = [];
+          allFeatures.forEach(feature => {
+            if (feature.properties && feature.properties.times) {
+              feature.properties.times.forEach(t => {
+                availableTimes.push(new Date(t));
+              });
+            }
+          });
+          
+          if (availableTimes.length > 0) {
+            availableTimes.sort((a, b) => a - b);
+            const timeStrings = availableTimes.map(d => d.toISOString()).join(',');
+            timeDimension.setAvailableTimes(timeStrings, 'replace');
+            timeDimension.setCurrentTime(availableTimes[0].getTime());
           }
-        });
-        
-        // สร้าง TimeDimension Layer
-        const timedLayer = L.timeDimension.layer.geoJson(geoJsonLayer, {
-          updateTimeDimension: true,
-          addlastPoint: true,
-          duration: "PT1M"
-        });
-        
-        timedLayer.addTo(mapInstanceRef.current);
-        
-        // รวบรวม times ทั้งหมดจาก features
-        const availableTimes = [];
-        allFeatures.forEach(feature => {
-          if (feature.properties && feature.properties.times) {
-            feature.properties.times.forEach(t => {
-              availableTimes.push(new Date(t));
-            });
+          
+          // ลบ Timeline Control เก่าถ้ามี
+          if (timeControlRef.current) {
+            mapInstanceRef.current.removeControl(timeControlRef.current);
+            timeControlRef.current = null;
           }
-        });
-        
-        // เรียงลำดับเวลา
-        if (availableTimes.length > 0) {
-          availableTimes.sort((a, b) => a - b);
-          const timeStrings = availableTimes.map(d => d.toISOString()).join(',');
-          timeDimension.setAvailableTimes(timeStrings, 'replace');
-          timeDimension.setCurrentTime(availableTimes[0].getTime());
-          console.log(`⏰ ตั้งเวลา Timeline: ${availableTimes.length} จุดเวลา`);
-          console.log(`📅 เวลาเริ่มต้น: ${availableTimes[0].toISOString()}`);
-          console.log(`📅 เวลาสิ้นสุด: ${availableTimes[availableTimes.length - 1].toISOString()}`);
+          
+          // เพิ่ม Timeline Control (1 ตัว)
+          const playerControl = new L.Control.TimeDimension({
+            timeDimension: timeDimension,
+            playerOptions: {
+              transitionTime: 1000,
+              loop: true,
+              startOver: true
+            }
+          });
+          mapInstanceRef.current.addControl(playerControl);
+          timeControlRef.current = playerControl;
+          
+          console.log('⏰ เพิ่ม Timeline Control แล้ว');
         }
-        
-        // เพิ่ม TimeDimension Control
-        const playerControl = new L.Control.TimeDimension({
-          timeDimension: timeDimension,
-          playerOptions: {
-            transitionTime: 1000,
-            loop: true,
-            startOver: true
-          }
-        });
-        mapInstanceRef.current.addControl(playerControl);
         
         console.log('✨ วาดแผนที่เสร็จสิ้น!');
         setLoading(false);
@@ -319,6 +341,363 @@ const Map = forwardRef((props, ref) => {
         console.error('❌ Error loading map data:', error);
         setLoading(false);
       }
+    };
+    
+    // 4) ตั้งค่า Socket.IO สำหรับรับข้อมูล real-time
+    const setupRealtimeListener = () => {
+      const socket = io('http://localhost:4001');
+      
+      socket.on('connect', () => {
+        console.log('✅ [Map] เชื่อมต่อ Socket.IO สำเร็จ');
+      });
+      
+      socket.on('newData', (data) => {
+        console.log('📡 [Map] ได้รับข้อมูล real-time:', data);
+        
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            const { deviceId, latitude, longitude, altitude, type, cameraId, 
+                    name, status, direction, fov, detectionRange, isCameraData } = item;
+            
+            if (deviceId && latitude && longitude) {
+              // ตรวจสอบว่าเป็นข้อมูลกล้องหรือไม่
+              const isCamera = deviceId.startsWith('CAM-') || deviceId.includes('camera') || isCameraData === true;
+              
+              console.log(`🔍 [Map] ตรวจสอบ ${deviceId}: isCamera=${isCamera}`);
+              
+              if (isCamera) {
+                console.log(`📷 [Map] อัพเดทกล้อง ${deviceId} แบบ real-time`);
+                // อัพเดทกล้อง
+                updateRealtimeCamera(
+                  deviceId,
+                  latitude,
+                  longitude,
+                  altitude || 0,
+                  name || deviceId,
+                  status || 'active',
+                  direction || 0,
+                  fov || 90,
+                  detectionRange || 500
+                );
+              } else {
+                // อัพเดทตำแหน่งเป้าหมาย
+                let color = '#ef4444'; // ค่าเริ่มต้นสีแดง (opponent)
+                let deviceType = 'opponent';
+                
+                // ตรวจสอบว่าเป็นโดรนฝั่งเราหรือไม่
+                if (deviceId.includes('MYDRONE') || deviceId.includes('ALPHA') || 
+                    deviceId.includes('BETA') || deviceId.includes('CHARLIE')) {
+                  color = '#10b981'; // เขียว
+                  deviceType = 'drone';
+                }
+                
+                updateRealtimePosition(
+                  deviceId,
+                  latitude,
+                  longitude,
+                  deviceType,
+                  color,
+                  altitude || 0,
+                  cameraId || 'N/A'
+                );
+              }
+            }
+          });
+        }
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('❌ [Map] ตัดการเชื่อมต่อ Socket.IO');
+      });
+      
+      return socket;
+    };
+    
+    // ฟังก์ชันอัพเดทตำแหน่ง real-time
+    const updateRealtimePosition = (deviceId, lat, lng, type, color, altitude = 0, cameraId = 'N/A') => {
+      if (!mapInstanceRef.current) return;
+      
+      const detectedTime = new Date().toLocaleString('th-TH');
+      
+      // ถ้ามี marker เก่า ให้อัพเดทตำแหน่ง
+      if (realtimeMarkersRef.current[deviceId]) {
+        const marker = realtimeMarkersRef.current[deviceId];
+        marker.setLatLng([lat, lng]);
+        marker.setPopupContent(`
+          <div style="font-size: 12px; line-height: 1.6;">
+            <b style="font-size: 14px; color: ${color};">📍 ${deviceId}</b><br>
+            <b>${type === 'drone' ? '🚁 Our Drone' : '🎯 Opponent'}</b><br>
+            <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+            <b>📡 Real-time Position</b><br>
+            ⏰ เวลา: ${detectedTime}<br>
+            📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
+            ✈️ ระดับความสูง: ${altitude} m<br>
+            📷 ตรวจจับโดย: ${cameraId}
+          </div>
+        `);
+      } else {
+        // สร้าง marker ใหม่
+        const marker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'realtime-marker',
+            html: `<div style="
+              background: ${color};
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              border: 3px solid white;
+              box-shadow: 0 0 10px rgba(0,0,0,0.5);
+              animation: pulse 1.5s infinite;
+            "></div>`,
+            iconSize: [20, 20]
+          })
+        }).addTo(mapInstanceRef.current);
+        
+        marker.bindPopup(`
+          <div style="font-size: 12px; line-height: 1.6;">
+            <b style="font-size: 14px; color: ${color};">📍 ${deviceId}</b><br>
+            <b>${type === 'drone' ? '🚁 Our Drone' : '🎯 Opponent'}</b><br>
+            <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+            <b>📡 Real-time Position</b><br>
+            ⏰ เวลา: ${detectedTime}<br>
+            📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
+            ✈️ ระดับความสูง: ${altitude} m<br>
+            📷 ตรวจจับโดย: ${cameraId}
+          </div>
+        `);
+        
+        realtimeMarkersRef.current[deviceId] = marker;
+      }
+      
+      // ไม่วาดเส้นทาง real-time (ลบออก)
+    };
+    
+    // ฟังก์ชันอัพเดทกล้อง real-time
+    const updateRealtimeCamera = (cameraId, lat, lng, altitude, name, status, direction, fov, detectionRange) => {
+      if (!mapInstanceRef.current) return;
+      
+      const color = status === 'active' ? '#3b82f6' : '#9ca3af';
+      const detectedTime = new Date().toLocaleString('th-TH');
+      
+      // ถ้ามีกล้องเก่า ให้อัพเดทตำแหน่ง
+      if (realtimeMarkersRef.current[cameraId]) {
+        const marker = realtimeMarkersRef.current[cameraId];
+        marker.setLatLng([lat, lng]);
+        marker.setPopupContent(`
+          <div style="font-size: 12px; line-height: 1.6;">
+            <b style="font-size: 14px; color: ${color};">📷 ${cameraId}</b><br>
+            <b>${name}</b><br>
+            <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+            <b>📡 Real-time Camera</b><br>
+            ⏰ อัพเดท: ${detectedTime}<br>
+            สถานะ: <span style="color: ${status === 'active' ? '#10b981' : '#ef4444'}">
+              ${status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+            </span><br>
+            ทิศทาง: ${direction}°<br>
+            FOV: ${fov}°<br>
+            📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
+            ระยะตรวจจับ: ${detectionRange}m
+          </div>
+        `);
+        
+        console.log(`🔄 [Map] อัพเดทกล้อง ${cameraId}`);
+      } else {
+        // สร้างกล้องใหม่
+        const marker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'realtime-camera-marker',
+            html: `<div style="
+              background: ${color};
+              width: 28px;
+              height: 28px;
+              border-radius: 4px;
+              border: 3px solid white;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+              animation: pulse 2s infinite;
+            ">📷</div>`,
+            iconSize: [28, 28]
+          })
+        }).addTo(mapInstanceRef.current);
+        
+        marker.bindPopup(`
+          <div style="font-size: 12px; line-height: 1.6;">
+            <b style="font-size: 14px; color: ${color};">📷 ${cameraId}</b><br>
+            <b>${name}</b><br>
+            <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+            <b>📡 Real-time Camera</b><br>
+            ⏰ อัพเดท: ${detectedTime}<br>
+            สถานะ: <span style="color: ${status === 'active' ? '#10b981' : '#ef4444'}">
+              ${status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+            </span><br>
+            ทิศทาง: ${direction}°<br>
+            FOV: ${fov}°<br>
+            📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
+            ระยะตรวจจับ: ${detectionRange}m
+          </div>
+        `);
+        
+        realtimeMarkersRef.current[cameraId] = marker;
+        
+        // วาด FOV ถ้ากล้องทำงาน
+        if (status === 'active' && fov < 360) {
+          const startAngle = direction - (fov / 2);
+          const endAngle = direction + (fov / 2);
+          const sectorPoints = [[lat, lng]];
+          
+          for (let angle = startAngle; angle <= endAngle; angle += 5) {
+            const rad = (angle * Math.PI) / 180;
+            const dx = (detectionRange / 111320) * Math.sin(rad);
+            const dy = (detectionRange / 110540) * Math.cos(rad);
+            sectorPoints.push([lat + dy, lng + dx]);
+          }
+          
+          sectorPoints.push([lat, lng]);
+          
+          // ลบ FOV เก่า
+          if (realtimePathsRef.current[cameraId + '_fov']) {
+            mapInstanceRef.current.removeLayer(realtimePathsRef.current[cameraId + '_fov']);
+          }
+          
+          const fovPolygon = L.polygon(sectorPoints, {
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.15,
+            weight: 1,
+            opacity: 0.4,
+            dashArray: '5, 5'
+          }).addTo(mapInstanceRef.current);
+          
+          realtimePathsRef.current[cameraId + '_fov'] = fovPolygon;
+        } else if (status === 'active' && fov === 360) {
+          // วาดวงกลม 360°
+          if (realtimePathsRef.current[cameraId + '_fov']) {
+            mapInstanceRef.current.removeLayer(realtimePathsRef.current[cameraId + '_fov']);
+          }
+          
+          const circle = L.circle([lat, lng], {
+            radius: detectionRange,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.1,
+            weight: 1,
+            opacity: 0.3,
+            dashArray: '5, 5'
+          }).addTo(mapInstanceRef.current);
+          
+          realtimePathsRef.current[cameraId + '_fov'] = circle;
+        }
+        
+        console.log(`✨ [Map] เพิ่มกล้องใหม่ ${cameraId}`);
+      }
+    };
+    
+    // ฟังก์ชันวาดกล้องบนแมพ
+    const drawCameras = (map, cameras) => {
+      if (!map || !cameras || cameras.length === 0) return;
+      
+      console.log('📷 กำลังวาดกล้อง:', cameras.length, 'ตัว');
+      
+      cameras.forEach(camera => {
+        // รองรับทั้ง cameraId และ deviceId
+        const camId = camera.cameraId || camera.deviceId || 'CAMERA-UNKNOWN';
+        const { name, latitude, longitude, status, direction, fov, detectionRange } = camera;
+        
+        console.log('📷 วาดกล้อง:', camId, 'ที่', latitude, longitude);
+        
+        // กำหนดสีตามสถานะ
+        const color = status === 'active' ? '#3b82f6' : '#9ca3af'; // น้ำเงินหรือเทา
+        
+        // สร้าง marker กล้อง
+        const cameraMarker = L.marker([latitude, longitude], {
+          icon: L.divIcon({
+            className: 'camera-marker',
+            html: `<div style="
+              background: ${color};
+              width: 30px;
+              height: 30px;
+              border-radius: 4px;
+              border: 3px solid white;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+              position: relative;
+            ">📷</div>`,
+            iconSize: [30, 30]
+          })
+        }).addTo(map);
+        
+        // Popup แสดงรายละเอียดกล้อง
+        cameraMarker.bindPopup(`
+          <div style="font-size: 12px;">
+            <b>📷 ${camId}</b><br>
+            <b>${name || 'กล้อง'}</b><br>
+            สถานะ: <span style="color: ${status === 'active' ? '#10b981' : '#ef4444'}">
+              ${status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+            </span><br>
+            ทิศทาง: ${direction}°<br>
+            FOV: ${fov}°<br>
+            พิกัด: [${latitude.toFixed(4)}, ${longitude.toFixed(4)}]<br>
+            ระยะตรวจจับ: ${detectionRange}m
+          </div>
+        `);
+        
+        // วาด Field of View (FOV) ถ้ากล้องทำงาน
+        if (status === 'active' && fov < 360) {
+          // คำนวณมุมเริ่มต้นและสิ้นสุดของ FOV
+          const startAngle = direction - (fov / 2);
+          const endAngle = direction + (fov / 2);
+          
+          // วาดรูปพัด (sector) แสดง FOV
+          const sectorPoints = [[latitude, longitude]];
+          
+          // สร้างจุดรอบๆ sector
+          for (let angle = startAngle; angle <= endAngle; angle += 5) {
+            const rad = (angle * Math.PI) / 180;
+            const dx = (detectionRange / 111320) * Math.sin(rad); // แปลงเมตรเป็นองศา
+            const dy = (detectionRange / 110540) * Math.cos(rad);
+            sectorPoints.push([latitude + dy, longitude + dx]);
+          }
+          
+          sectorPoints.push([latitude, longitude]); // ปิดรูป
+          
+          // วาด Polygon
+          L.polygon(sectorPoints, {
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.15,
+            weight: 1,
+            opacity: 0.4,
+            dashArray: '5, 5'
+          }).addTo(map).bindPopup(`
+            <b>📷 ${name || camId}</b><br>
+            ระยะตรวจจับ: ${detectionRange}m<br>
+            FOV: ${fov}°
+          `);
+        } else if (status === 'active' && fov === 360) {
+          // วาดวงกลมสำหรับกล้อง 360 องศา
+          L.circle([latitude, longitude], {
+            radius: detectionRange,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.1,
+            weight: 1,
+            opacity: 0.3,
+            dashArray: '5, 5'
+          }).addTo(map).bindPopup(`
+            <b>📷 ${name || camId}</b><br>
+            กล้อง 360°<br>
+            ระยะตรวจจับ: ${detectionRange}m
+          `);
+        }
+      });
+      
+      console.log('✅ วาดกล้องเสร็จสิ้น!');
     };
     
     // ฟังก์ชันแปลงข้อมูลเป็น GeoJSON
@@ -334,7 +713,12 @@ const Map = forwardRef((props, ref) => {
       
       const features = [];
       Object.keys(grouped).forEach(deviceId => {
-        const points = grouped[deviceId].sort((a, b) => a.time - b.time);
+        // กรองเฉพาะข้อมูลที่มี time ถูกต้อง
+        const validPoints = grouped[deviceId].filter(p => 
+          p.time && !isNaN(p.time) && p.time > 0
+        );
+        
+        const points = validPoints.sort((a, b) => a.time - b.time);
         
         if (points.length > 1) {
           // สร้าง times array (ISO strings) สำหรับ TimeDimension
@@ -350,7 +734,16 @@ const Map = forwardRef((props, ref) => {
               type: type,
               color: color,
               pointCount: points.length,
-              times: times // เพิ่ม times สำหรับ TimeDimension
+              times: times, // เพิ่ม times สำหรับ TimeDimension
+              startTime: new Date(points[0].time * 1000).toLocaleString('th-TH'),
+              endTime: new Date(points[points.length - 1].time * 1000).toLocaleString('th-TH'),
+              startLat: points[0].latitude,
+              startLng: points[0].longitude,
+              endLat: points[points.length - 1].latitude,
+              endLng: points[points.length - 1].longitude,
+              altitude: points[0].altitude || 0,
+              cameraId: points[0].cameraId || 'N/A',
+              allPoints: points // เก็บข้อมูลทั้งหมด
             },
             geometry: {
               type: 'LineString',
@@ -368,7 +761,12 @@ const Map = forwardRef((props, ref) => {
               type: type,
               color: color,
               pointCount: 1,
-              times: [isoTime] // เพิ่ม times สำหรับ TimeDimension
+              times: [isoTime], // เพิ่ม times สำหรับ TimeDimension
+              detectedTime: new Date(timestamp).toLocaleString('th-TH'),
+              latitude: points[0].latitude,
+              longitude: points[0].longitude,
+              altitude: points[0].altitude || 0,
+              cameraId: points[0].cameraId || 'N/A'
             },
             geometry: {
               type: 'Point',
@@ -400,13 +798,7 @@ const Map = forwardRef((props, ref) => {
               return;
             }
             
-            // วาดเส้นทาง
-            const polyline = L.polyline(coords, {
-              color: color,
-              weight: 3,
-              opacity: 0.7,
-              dashArray: '5, 10'
-            }).addTo(mapInstance);
+            // ไม่วาดเส้นทาง (ลบออก)
             
             // จุดเริ่มต้น
             L.circleMarker(coords[0], {
@@ -416,17 +808,19 @@ const Map = forwardRef((props, ref) => {
               weight: 2,
               opacity: 1,
               fillOpacity: 0.8
-            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>Start (${feature.properties.pointCount} points)`);
-            
-            // จุดสิ้นสุด
-            L.circleMarker(coords[coords.length - 1], {
-              radius: 8,
-              fillColor: color,
-              color: '#fff',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
-            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>End Point`);
+            }).addTo(mapInstance).bindPopup(`
+              <div style="font-size: 12px; line-height: 1.6;">
+                <b style="font-size: 14px; color: ${color};">${feature.properties.id}</b><br>
+                <b>🎯 ${label}</b><br>
+                <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                <b>📍 จุดเริ่มต้น</b><br>
+                ⏰ เวลา: ${feature.properties.startTime}<br>
+                📌 พิกัด: [${feature.properties.startLat.toFixed(5)}, ${feature.properties.startLng.toFixed(5)}]<br>
+                ✈️ ระดับความสูง: ${feature.properties.altitude} m<br>
+                📷 ตรวจจับโดย: ${feature.properties.cameraId}<br>
+                📊 จำนวนจุด: ${feature.properties.pointCount}
+              </div>
+            `);
             
           } else if (feature.geometry.type === 'Point') {
             const coord = feature.geometry.coordinates;
@@ -443,7 +837,18 @@ const Map = forwardRef((props, ref) => {
               weight: 2,
               opacity: 1,
               fillOpacity: 0.8
-            }).addTo(mapInstance).bindPopup(`<b>${feature.properties.id}</b><br>${label}<br>Single Point`);
+            }).addTo(mapInstance).bindPopup(`
+              <div style="font-size: 12px; line-height: 1.6;">
+                <b style="font-size: 14px; color: ${color};">${feature.properties.id}</b><br>
+                <b>🎯 ${label}</b><br>
+                <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                <b>📍 จุดตรวจจับ</b><br>
+                ⏰ เวลา: ${feature.properties.detectedTime}<br>
+                📌 พิกัด: [${feature.properties.latitude.toFixed(5)}, ${feature.properties.longitude.toFixed(5)}]<br>
+                ✈️ ระดับความสูง: ${feature.properties.altitude} m<br>
+                📷 ตรวจจับโดย: ${feature.properties.cameraId}
+              </div>
+            `);
           }
         } catch (error) {
           console.error(`❌ Error drawing ${feature.properties.id}:`, error);
@@ -469,8 +874,12 @@ const Map = forwardRef((props, ref) => {
       map.invalidateSize();
     }, 100);
 
+    // ตั้งค่า real-time listener
+    const socket = setupRealtimeListener();
+
     // Cleanup function
     return () => {
+      if (socket) socket.disconnect();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;

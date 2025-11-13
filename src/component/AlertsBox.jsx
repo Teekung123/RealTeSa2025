@@ -33,6 +33,7 @@ function AlertsBox({ onAlertClick, mapRef }) {
         const newAlerts = data.map(item => {
           const deviceId = item.deviceId || 'unknown';
           const status = item.type || 'success';
+          const cameraId = item.cameraId || 'N/A'; // เพิ่ม cameraId
           
           // ดึงพิกัดตัวแรก (หรือตัวเดียว)
           let lat, lng, alt;
@@ -69,6 +70,7 @@ function AlertsBox({ onAlertClick, mapRef }) {
             latitude: lat,
             longitude: lng,
             altitude: alt,
+            cameraId: cameraId, // เพิ่ม cameraId
             timestamp: Date.now()
           };
         });
@@ -104,7 +106,9 @@ function AlertsBox({ onAlertClick, mapRef }) {
                 alert.deviceId,
                 alert.latitude,
                 alert.longitude,
-                alert.status
+                alert.status,
+                alert.altitude || 0,
+                alert.cameraId || 'N/A'
               );
             }
           });

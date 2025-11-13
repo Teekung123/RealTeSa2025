@@ -22,33 +22,36 @@ const MONGODB_URI = process.env.MONGODB_URI;
 // ------------------------------------
 // MongoDB Configuration
 // ------------------------------------
-let coll = null;
+let targetColl = null;
+let cameraColl = null;
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ เชื่อมต่อ MongoDB สำเร็จ! (WebSocket Server)');
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    coll = db.collection('Log_data_location');
+    targetColl = db.collection('Log_data_location');
+    cameraColl = db.collection('Camera_locations');
     console.log("✅ Collection 'Log_data_location' is ready.");
+    console.log("✅ Collection 'Camera_locations' is ready.");
   })
   .catch((err) => {
     console.error('❌ เชื่อมต่อ MongoDB ไม่สำเร็จ:', err);
     process.exit(1);
   });
 
-// ฟังก์ชันสำหรับดึง collection
-const getCollection = () => coll;
+// ฟังก์ชันสำหรับดึง collections
+const getCollections = () => ({ targetColl, cameraColl });
 
 // ------------------------------------
 // ตั้งค่า HTTP Server และ Socket.IO
 // ------------------------------------
 const server = http.createServer(app);
-const io = setupSocketIO(server, getCollection);
+const io = setupSocketIO(server, getCollections);
 
 // ------------------------------------
 // ตั้งค่า WebSocket Server
 // ------------------------------------
-const wss = setupWebSocket(WEBSOCKET_PORT, getCollection, io);
+const wss = setupWebSocket(WEBSOCKET_PORT, getCollections, io);
 
 // ------------------------------------
 // เริ่มต้น Server

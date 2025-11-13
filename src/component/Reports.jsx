@@ -105,7 +105,7 @@ export default function Reports() {
           {/* กลางบน: Pie ฝ่ายเรา */}
           <div className="r-col-12 r-md-col-3 r-stack-3">
             <Card title="สถานะฝูงโดรน (ฝ่ายเรา)">
-              <div className="r-h-64">
+              <div className="r-h-64" style={{ minHeight: '12rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={pieUs} dataKey="value" nameKey="name" outerRadius={83}>
@@ -125,7 +125,7 @@ export default function Reports() {
 
           <div className="r-col-12 r-md-col-3">
             <Card title="สถานะฝูงโดรน (ฝ่ายตรงข้าม)">
-              <div className="r-h-64">
+              <div className="r-h-64" style={{ minHeight: '12rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={pieEnemy} dataKey="value" nameKey="name" outerRadius={83}>
@@ -141,7 +141,7 @@ export default function Reports() {
           {/* กราฟเส้น 2 ฝั่ง */}
           <div className="r-col-12 r-md-col-6">
             <Card title="กราฟเส้น (เที่ยวบินฝ่ายเรา / วัน)">
-              <div className="r-h-64">
+              <div className="r-h-64" style={{ minHeight: '12rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={lineUs}>
                     <XAxis dataKey="date" />
@@ -156,7 +156,7 @@ export default function Reports() {
 
           <div className="r-col-12 r-md-col-6">
             <Card title="กราฟเส้น (การตรวจจับฝ่ายตรงข้าม / วัน)">
-              <div className="r-h-64">
+              <div className="r-h-64" style={{ minHeight: '12rem' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={lineEnemy}>
                     <XAxis dataKey="date" />
