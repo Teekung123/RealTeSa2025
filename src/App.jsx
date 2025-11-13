@@ -21,58 +21,69 @@ function App() {
   };
 
   // drones จาก API
-  const [drones, setDrones] = useState([]);
+  const [opponents, setOpponents] = useState([]);
+  const [myDrones, setMyDrones] = useState([]);
 
   useEffect(() => {
-    const fetchTargets = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("http://192.168.1.102:3000/api/targets");
-        if (!res.ok) throw new Error(res.status);
-        const raw = await res.json();
+        // Fetch opponents
+        const resOpponents = await fetch("http://192.168.1.102:3000/api/targets");
+        if (resOpponents.ok) {
+          const raw = await resOpponents.json();
+          let list = [];
+          if (Array.isArray(raw)) list = raw;
+          else if (raw.data) list = raw.data;
+          else if (raw.targets) list = raw.targets;
 
-        let list = [];
-        if (Array.isArray(raw)) list = raw;
-        else if (raw.data) list = raw.data;
-        else if (raw.targets) list = raw.targets;
+          const mapped = list.map((t) => ({
+            id: t._id,
+            deviceId: t.deviceId,
+            cameraId: t.cameraId,
+            lat: t.latitude,
+            lng: t.longitude,
+            lastSeen: t.timestamp,
+          }));
+          setOpponents(mapped);
+        }
 
-        const mapped = list.map((t) => ({
-          id: t._id,
-          side: "enemy",
-          active: true,
-          lat: t.latitude,
-          lng: t.longitude,
-          lastSeen: t.timestamp,
-        }));
-
-        setDrones(mapped);
+        // Fetch mydrones
+        const resMyDrones = await fetch("http://192.168.1.102:3000/api/MyDrone");
+        if (resMyDrones.ok) {
+          const myData = await resMyDrones.json();
+          // ตรวจสอบว่าเป็น array หรือไม่
+          const myList = Array.isArray(myData) ? myData : (myData.data || []);
+          setMyDrones(myList);
+        }
       } catch (err) {
         console.error("โหลด API ไม่สำเร็จ", err);
       }
     };
 
-    fetchTargets();
+    fetchData();
   }, []);
 
-  const COLORS_ENEMY = ["#ef4444", "#9ca3af"]; // แดง + เทา
-  const COLORS_US = ["#22c55e", "#9ca3af"];    // เขียว + เทา
+  const COLORS = ["#60a5fa", "#f97316", "#22c55e", "#a855f7", "#e11d48"];
 
-  // ฝ่ายตรงข้าม (ข้อมูลจริงจาก drones)
-  const pieEnemy = useMemo(
-    () => [
-      { name: "ทำงาน", value: drones.filter((d) => d.active).length },
-      { name: "ไม่ทำงาน", value: 0 },
-    ],
-    [drones]
-  );
+  // ฝ่ายตรงข้าม: แบ่งตาม Device
+  const pieEnemyDevice = useMemo(() => {
+    const map = {};
+    opponents.forEach((d) => {
+      const key = d.deviceId || "ไม่ทราบ Device";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [opponents]);
 
-  // ฝ่ายเรา (ยังไม่มี API เลยใส่ค่า mock ไว้เฉย ๆ)
-  const pieUs = useMemo(
-    () => [
-      { name: "ทำงาน", value: 3 },
-      { name: "ไม่ทำงาน", value: 1 },
-    ],
-    []
-  );
+  // ฝ่ายตรงข้าม: แบ่งตาม Camera
+  const pieEnemyCamera = useMemo(() => {
+    const map = {};
+    opponents.forEach((d) => {
+      const key = d.cameraId || "ไม่ทราบกล้อง";
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [opponents]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
@@ -109,7 +120,7 @@ function App() {
             gap: 10,
           }}
         >
-          {/* กล่อง 1: ฝ่ายตรงข้าม */}
+          {/* กล่อง 1: ฝ่ายตรงข้าม - แบ่งตาม Device */}
           <div
             style={{
               background: "#111827",
@@ -122,11 +133,11 @@ function App() {
               style={{
                 textAlign: "center",
                 fontWeight: "bold",
-                fontSize: 12,
+                fontSize: 11,
                 marginBottom: 4,
               }}
             >
-              สถานะโดรน (ฝ่ายตรงข้าม)
+              ฝ่ายตรงข้าม (Device)
             </div>
 
             <div
@@ -137,34 +148,40 @@ function App() {
                 marginTop: 4,
               }}
             >
-              <PieChart width={120} height={100}>
+              <PieChart width={180} height={140}>
                 <Pie
-                  data={pieEnemy}
+                  data={pieEnemyDevice}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="45%"
-                  innerRadius={20}
-                  outerRadius={32}
+                  innerRadius={30}
+                  outerRadius={45}
                   paddingAngle={2}
+                  minAngle={8}
+                  stroke="#ffffff"
+                  strokeWidth={1}
                   label={false}
                   labelLine={false}
                 >
-                  {pieEnemy.map((_, i) => (
-                    <Cell key={i} fill={COLORS_ENEMY[i % COLORS_ENEMY.length]} />
+                  {pieEnemyDevice.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ fontSize: 9, padding: 4 }} />
+                <Tooltip
+                  wrapperStyle={{ fontSize: 10 }}
+                  contentStyle={{ padding: 6 }}
+                />
                 <Legend
                   verticalAlign="bottom"
-                  wrapperStyle={{ fontSize: 8 }}
+                  wrapperStyle={{ fontSize: 9 }}
                   iconSize={8}
                 />
               </PieChart>
             </div>
           </div>
 
-          {/* กล่อง 2: ฝ่ายเรา */}
+          {/* กล่อง 1b: ฝ่ายตรงข้าม - แบ่งตาม Camera */}
           <div
             style={{
               background: "#111827",
@@ -177,11 +194,11 @@ function App() {
               style={{
                 textAlign: "center",
                 fontWeight: "bold",
-                fontSize: 12,
+                fontSize: 11,
                 marginBottom: 4,
               }}
             >
-              สถานะโดรน (ฝ่ายเรา)
+              ฝ่ายตรงข้าม (Camera)
             </div>
 
             <div
@@ -192,27 +209,33 @@ function App() {
                 marginTop: 4,
               }}
             >
-              <PieChart width={120} height={100}>
+              <PieChart width={180} height={140}>
                 <Pie
-                  data={pieUs}
+                  data={pieEnemyCamera}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="45%"
-                  innerRadius={20}
-                  outerRadius={32}
+                  innerRadius={30}
+                  outerRadius={45}
                   paddingAngle={2}
+                  minAngle={8}
+                  stroke="#ffffff"
+                  strokeWidth={1}
                   label={false}
                   labelLine={false}
                 >
-                  {pieUs.map((_, i) => (
-                    <Cell key={i} fill={COLORS_US[i % COLORS_US.length]} />
+                  {pieEnemyCamera.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ fontSize: 9, padding: 4 }} />
+                <Tooltip
+                  wrapperStyle={{ fontSize: 10 }}
+                  contentStyle={{ padding: 6 }}
+                />
                 <Legend
                   verticalAlign="bottom"
-                  wrapperStyle={{ fontSize: 8 }}
+                  wrapperStyle={{ fontSize: 9 }}
                   iconSize={8}
                 />
               </PieChart>

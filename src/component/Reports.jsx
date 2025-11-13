@@ -314,7 +314,7 @@ export default function Reports() {
             </Card>
           </div> */}
 
-          {/* ตาราง */}
+          {/* ตาราง
           <div className="r-col-12">
             <Card title="ตารางการตรวจพบล่าสุด">
               <div className="r-table-wrap">
@@ -346,7 +346,7 @@ export default function Reports() {
                 </table>
               </div>
             </Card>
-          </div>
+          </div> */}
         </div>
       </div>
     </>
