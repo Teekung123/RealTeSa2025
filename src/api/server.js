@@ -2,6 +2,11 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // โหลด environment variables
 dotenv.config();
@@ -31,6 +36,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // ให้บริการ static files จากโฟลเดอร์ 'public'
 app.use(express.static('public'));
+
+// ให้บริการรูปภาพจากโฟลเดอร์ IMG
+app.use('/IMG', express.static(path.join(__dirname, '../../public/IMG')));
+console.log('📁 Serving images from:', path.join(__dirname, '../../public/IMG'));
 
 // Route หลัก
 app.get('/', (req, res) => {
@@ -67,7 +76,7 @@ app.get('/api/targets', async (req, res) => {
 app.get('/api/MyDrone', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('LogMy_data_location');
+    const collection = db.collection('Mydrone_location');
     const drones = await collection.find({
       deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' },
       latitude: { $exists: true, $ne: null },
@@ -108,6 +117,74 @@ app.get('/api/cameras', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [API] Error fetching cameras:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET - ดึงข้อมูลรวมทั้ง MyDrone และ Camera
+app.get('/api/all-assets', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    
+    // ดึงข้อมูลโดรนฝั่งเรา
+    const myDroneCollection = db.collection('Mydrone_location');
+    const drones = await myDroneCollection.find({}).toArray();
+    
+    // ดึงข้อมูลกล้อง
+    const cameraCollection = db.collection('Camera_locations');
+    const cameras = await cameraCollection.find({
+      $or: [
+        { cameraId: { $exists: true, $ne: null } },
+        { deviceId: { $regex: /^CAM-/i } }
+      ],
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null }
+    }).toArray();
+    
+    // เพิ่มฟิลด์ assetType เพื่อแยกประเภท
+    const dronesWithType = drones.map(d => ({ ...d, assetType: 'drone' }));
+    const camerasWithType = cameras.map(c => ({ ...c, assetType: 'camera' }));
+    
+    // รวมข้อมูลทั้งหมด
+    const allAssets = [...dronesWithType, ...camerasWithType];
+    
+    console.log(`📊 [API] ข้อมูลทั้งหมด: โดรน ${drones.length} ตัว, กล้อง ${cameras.length} ตัว`);
+
+    res.json({ 
+      success: true, 
+      count: allAssets.length,
+      breakdown: {
+        drones: drones.length,
+        cameras: cameras.length
+      },
+      data: allAssets 
+    });
+  } catch (error) {
+    console.error('❌ [API] Error fetching all assets:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET - ดึงข้อมูล detections จากกล้องพร้อมภาพ
+app.get('/api/detections', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Detections');
+    
+    const detections = await collection.find({})
+      .sort({ timestamp: -1 })
+      .limit(100)
+      .toArray();
+    
+    console.log('📷 [API] พบ detections:', detections.length, 'รายการ');
+
+    res.json({ 
+      success: true, 
+      count: detections.length,
+      data: detections 
+    });
+  } catch (error) {
+    console.error('❌ [API] Error fetching detections:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

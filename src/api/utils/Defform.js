@@ -1,11 +1,12 @@
 /**
  * ฟังก์ชันแปลงข้อมูลจาก Client เป็นรูปแบบที่บันทึกใน MongoDB
- * แยก collection ตามประเภทข้อมูล: Camera_locations และ Log_data_location
+ * แยก collection ตามประเภทข้อมูล: Mydrone_location, Log_data_location, Camera_locations
  * @param {Object|Array} parsedData - ข้อมูลที่ได้รับจาก Client
- * @returns {Object} { targets: Array, cameras: Array } - ข้อมูลแยกตาม collection
+ * @returns {Object} { myDrones: Array, opponents: Array, cameras: Array } - ข้อมูลแยกตาม collection
  */
 export function transformDataToEntries2(parsedData) {
-  const targets = []; // ข้อมูลเป้าหมาย (drone/opponent)
+  const myDrones = []; // ข้อมูลโดรนฝั่งเรา
+  const opponents = []; // ข้อมูลเป้าหมายฝั่งตรงข้าม
   const cameras = []; // ข้อมูลกล้อง
   const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
 
@@ -21,6 +22,16 @@ export function transformDataToEntries2(parsedData) {
     // ตรวจสอบว่าเป็นข้อมูลกล้องหรือไม่
     const isCamera = d.isCameraData === true || 
                      (deviceId && (deviceId.startsWith('CAM-') || deviceId.includes('camera')));
+    
+    // ตรวจสอบว่าเป็นโดรนฝั่งเราหรือไม่
+    const isMyDrone = d.isMyDrone === true || 
+                      (deviceId && (
+                        deviceId.startsWith('MYDRONE-') || 
+                        deviceId.includes('MYDRONE') ||
+                        deviceId.includes('ALPHA') ||
+                        deviceId.includes('BETA') ||
+                        deviceId.includes('CHARLIE')
+                      ));
 
     // ✅ กรณี latitude/longitude/altitude เป็น Array (หลายจุด)
     if (Array.isArray(lat) && Array.isArray(lon)) {
@@ -47,8 +58,12 @@ export function transformDataToEntries2(parsedData) {
             fov: d.fov || 90,
             detectionRange: d.detectionRange || 500
           });
+        } else if (isMyDrone) {
+          // โดรนฝั่งเรา
+          myDrones.push(entry);
         } else {
-          targets.push(entry);
+          // ฝั่งตรงข้าม
+          opponents.push(entry);
         }
       }
     }
@@ -75,8 +90,12 @@ export function transformDataToEntries2(parsedData) {
           fov: d.fov || 90,
           detectionRange: d.detectionRange || 500
         });
+      } else if (isMyDrone) {
+        // โดรนฝั่งเรา
+        myDrones.push(entry);
       } else {
-        targets.push(entry);
+        // ฝั่งตรงข้าม
+        opponents.push(entry);
       }
     }
     // ⚠️ ไม่มีข้อมูลพิกัด
@@ -85,5 +104,5 @@ export function transformDataToEntries2(parsedData) {
     }
   });
 
-  return { targets, cameras };
+  return { myDrones, opponents, cameras };
 }

@@ -22,6 +22,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 // ------------------------------------
 // MongoDB Configuration
 // ------------------------------------
+let myDroneColl = null;
 let targetColl = null;
 let cameraColl = null;
 
@@ -29,8 +30,10 @@ mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ เชื่อมต่อ MongoDB สำเร็จ! (WebSocket Server)');
     const db = mongoose.connection.useDb('Wep_socket_DB');
+    myDroneColl = db.collection('Mydrone_location');
     targetColl = db.collection('Log_data_location');
     cameraColl = db.collection('Camera_locations');
+    console.log("✅ Collection 'Mydrone_location' is ready.");
     console.log("✅ Collection 'Log_data_location' is ready.");
     console.log("✅ Collection 'Camera_locations' is ready.");
   })
@@ -40,7 +43,7 @@ mongoose.connect(MONGODB_URI)
   });
 
 // ฟังก์ชันสำหรับดึง collections
-const getCollections = () => ({ targetColl, cameraColl });
+const getCollections = () => ({ myDroneColl, targetColl, cameraColl });
 
 // ------------------------------------
 // ตั้งค่า HTTP Server และ Socket.IO
@@ -51,7 +54,7 @@ const io = setupSocketIO(server, getCollections);
 // ------------------------------------
 // ตั้งค่า WebSocket Server
 // ------------------------------------
-const wss = setupWebSocket(WEBSOCKET_PORT, getCollections, io);
+const wss = setupWebSocket(WEBSOCKET_PORT, getCollections, io, mongoose);
 
 // ------------------------------------
 // เริ่มต้น Server

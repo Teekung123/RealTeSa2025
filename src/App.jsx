@@ -103,6 +103,7 @@ function App() {
         >
           <Map ref={mapRef} />
         </div>
+<<<<<<< HEAD
 
         {/* ขวา: กราฟวงกลม 2 อัน (Device + Camera) */}
         <div
@@ -135,6 +136,70 @@ function App() {
               สัดส่วนการตรวจจับ แบ่งตาม Device
             </div>
 
+=======
+        
+        {/* Right Side - Mission State & Graph */}
+        <div style={{ width: '160px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          
+          {/* Mission State Panel */}
+          <div style={{ 
+            background: '#2d2d2d', 
+            borderRadius: '8px', 
+            padding: '10px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ 
+              color: '#fff', 
+              fontSize: '14px', 
+              marginBottom: '10px', 
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}>
+              Mission State
+            </div>
+            
+            {missionStates.map((state, index) => (
+              <div key={index} style={{
+                background: '#fff',
+                color: '#000',
+                padding: '10px 8px',
+                marginBottom: '8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                minHeight: '55px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', textAlign: 'center' }}>
+                  {state.id}
+                </div>
+                <div style={{ textAlign: "center", fontSize: 10 }}>
+                  {state.status}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* PieChart Panel (Mini Pie Enemy) */}
+          <div
+            style={{
+              background: "#2d2d2d",
+              padding: 10,
+              borderRadius: 8,
+              flex: 1,
+              color: "#fff",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
+              สถานะโดรน (ฝ่ายตรงข้าม)
+            </div>
+
+            {/* MINI PIE CHART */}
+>>>>>>> 468f928fb6b9fb7233e8ab79069f61fc813f1039
             <div
               style={{
                 width: "100%",

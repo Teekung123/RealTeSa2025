@@ -8,6 +8,7 @@ import Test from './component/testmain.jsx'
 import Reports from './component/Reports.jsx'
 import MapPage from './component/MapPage.jsx'
 import AlertsHistory from './component/AlertsHistory.jsx'
+import ImageViewer from './component/ImageViewer.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -19,6 +20,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/reports" element={<Reports />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/alerts" element={<AlertsHistory />} />
+        <Route path="/images" element={<ImageViewer />} />
 
       </Routes>
     </BrowserRouter>
