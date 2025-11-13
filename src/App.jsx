@@ -143,7 +143,7 @@ function App() {
                   {state.status}
                 </div>
               </div>
-            ))} */}
+            ))}
           </div>
 
           {/* PieChart Panel (Mini Pie Enemy) */}
