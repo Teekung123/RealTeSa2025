@@ -22,13 +22,13 @@ export function setupSocketIO(server, getCollection) {
 
     // ส่งข้อมูลเริ่มต้นจาก MongoDB ให้ Client ที่เพิ่งเชื่อมเข้ามา
     (async () => {
-      const coll = getCollection();
-      if (!coll) {
+      const collections = getCollection();
+      if (!collections || !collections.targetColl) {
         console.warn("⚠️ [Socket.IO] DB Collection not ready, skipping initial data.");
         return socket.emit('error', { message: 'Database collection not ready yet.' });
       }
       try {
-        const initialData = await coll.find().toArray();
+        const initialData = await collections.targetColl.find().toArray();
         // socket.emit('initialData', initialData);
         console.log(`📤 [Socket.IO] ส่งข้อมูลเริ่มต้น ${initialData.length} รายการ`);
       } catch (err) {
@@ -39,8 +39,8 @@ export function setupSocketIO(server, getCollection) {
 
     // รับข้อมูลจาก Client ผ่าน event 'sendData'
     socket.on('sendData', async (parsedData, ackCallback) => {
-      const coll = getCollection();
-      if (!coll) {
+      const collections = getCollection();
+      if (!collections || !collections.targetColl || !collections.cameraColl) {
         if (ackCallback) ackCallback({ status: "error", message: "DB not ready" });
         return;
       }
@@ -49,24 +49,38 @@ export function setupSocketIO(server, getCollection) {
         console.log(`📦 [Socket.IO] ชนิดข้อมูลจาก Client: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
 
         // ใช้ฟังก์ชันแปลงข้อมูล
-        const allEntries = transformDataToEntries2(parsedData);
+        const { targets, cameras } = transformDataToEntries2(parsedData);
 
-        // บันทึกข้อมูลลง MongoDB
-        if (allEntries.length > 0) {
-          await coll.insertMany(allEntries);
-          console.log("✅ [Socket.IO] บันทึกข้อมูลสำเร็จ:", allEntries.length, "จุด");
+        // บันทึกข้อมูลลง MongoDB แยกตาม collection
+        let totalSaved = 0;
+        
+        if (targets.length > 0) {
+          await collections.targetColl.insertMany(targets);
+          console.log("✅ [Socket.IO] บันทึกข้อมูลเป้าหมาย:", targets.length, "จุด");
+          totalSaved += targets.length;
+        }
+        
+        if (cameras.length > 0) {
+          await collections.cameraColl.insertMany(cameras);
+          console.log("✅ [Socket.IO] บันทึกข้อมูลกล้อง:", cameras.length, "ตัว");
+          totalSaved += cameras.length;
+        }
 
+        if (totalSaved > 0) {
           // ส่งข้อความตอบกลับไปยัง Client ที่ส่งข้อมูลมา
           if (ackCallback) {
             ackCallback({
               status: "ok",
-              message: `บันทึกข้อมูลสำเร็จ ${allEntries.length} จุด`,
+              message: `บันทึกข้อมูลสำเร็จ ${totalSaved} รายการ (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`,
             });
           }
 
-          // Broadcast ข้อมูลใหม่ไปให้ Client ทุกคน
-          console.log("📡 [Socket.IO] กำลังส่งข้อมูลใหม่ไปยัง clients ทั้งหมด");
-          io.emit('newData', allEntries);
+          // Broadcast ข้อมูลใหม่ไปให้ Client ทุกคน (ทั้ง targets และ cameras)
+          const newData = [...targets, ...cameras];
+          if (newData.length > 0) {
+            console.log(`📡 [Socket.IO] กำลังส่งข้อมูลใหม่ไปยัง clients ทั้งหมด (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`);
+            io.emit('newData', newData);
+          }
 
         } else {
           console.warn("⚠️ [Socket.IO] ไม่มีข้อมูลที่ต้องบันทึก");

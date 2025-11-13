@@ -15,6 +15,16 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+// ฟังก์ชันช่วย: สร้าง timestamp ในช่วง 12:00 - 13:00 วันนี้
+function randomTimeBetween12to13() {
+  const baseDate = new Date(); // วันนี้
+  baseDate.setHours(12, 0, 0, 0);
+  const start = baseDate.getTime();           // หน่วยมิลลิวินาที
+  const end = start + 60 * 60 * 1000;         // +1 ชั่วโมง
+  const randomMs = Math.floor(Math.random() * (end - start) + start);
+  return Math.floor(randomMs / 1000);         // ✅ แปลงเป็นวินาที
+}
+
 // ฟังก์ชันสร้างข้อมูลโดรนฝั่งเรา (My Drone) - สีเขียว
 function generateMyDroneData(deviceId, type = "drone", count = 1) {
   const data = [];
@@ -25,7 +35,7 @@ function generateMyDroneData(deviceId, type = "drone", count = 1) {
   for (let i = 0; i < count; i++) {
     data.push({
       deviceId: deviceId,
-      time: Math.floor((baseTime + (i * 10000)) / 1000), // ห่างกัน 10 วินาที
+      time: Math.floor((baseTime + (i * 10000)) / 1000), // ห่างกัน 10 วินาที (เป็นวินาที)
       latitude: baseLat + rand(-0.01, 0.01) + (i * 0.0008), // เคลื่อนที่เรียบ
       longitude: baseLon + rand(-0.01, 0.01) + (i * 0.0008),
       altitude: Math.floor(rand(200, 500)), // บินสูงกว่า

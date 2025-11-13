@@ -191,8 +191,8 @@ export default function Reports() {
                     innerRadius={40}
                     outerRadius={63}
                     paddingAngle={2}
-                    minAngle={8}         // ✅ บังคับมุมขั้นต่ำให้ทุกชิ้นเห็นสี
-                    stroke="#ffffff"     // ✅ เส้นแบ่งสีให้ชัดขึ้น
+                    minAngle={8}         // บังคับมุมขั้นต่ำให้ทุกชิ้นเห็นสี
+                    stroke="#ffffff"     // เส้นแบ่งสีให้ชัดขึ้น
                     strokeWidth={1}
                     labelLine={false}
                     label={false}
@@ -237,7 +237,7 @@ export default function Reports() {
                     innerRadius={40}
                     outerRadius={63}
                     paddingAngle={2}
-                    minAngle={8}         // ✅ ตรงนี้ด้วย
+                    minAngle={8}
                     stroke="#ffffff"
                     strokeWidth={1}
                     labelLine={false}

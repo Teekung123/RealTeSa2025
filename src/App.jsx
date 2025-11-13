@@ -32,9 +32,9 @@ function App() {
     { id: "ภารกิจ 120", status: "Path Deviation" },
   ]);
 
+  // drones จาก API
   const [drones, setDrones] = useState([]);
 
-  // โหลดข้อมูลโดรนจาก API
   useEffect(() => {
     const fetchTargets = async () => {
       try {
@@ -89,13 +89,12 @@ function App() {
       <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
       <div style={{ display: "flex", flex: 1, padding: 10, gap: 10 }}>
-        
         {/* ซ้าย: Alerts */}
         <div style={{ width: 150 }}>
           <AlertsBox onAlertClick={handleAlertClick} mapRef={mapRef} />
         </div>
 
-        {/* ตรงกลาง: Map */}
+        {/* กลาง: แผนที่ */}
         <div
           style={{
             flex: 1,
@@ -107,9 +106,15 @@ function App() {
           <Map ref={mapRef} />
         </div>
 
-        {/* ขวา: Mission + PieChart */}
-        <div style={{ width: 200, display: "flex", flexDirection: "column", gap: 10 }}>
-
+        {/* ขวา: Mission + Pie Enemy */}
+        <div
+          style={{
+            width: 200,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
           {/* Mission Panel */}
           <div
             style={{
@@ -119,7 +124,13 @@ function App() {
               color: "#fff",
             }}
           >
-            <div style={{ fontWeight: "bold", textAlign: "center", marginBottom: 8 }}>
+            <div
+              style={{
+                fontWeight: "bold",
+                textAlign: "center",
+                marginBottom: 8,
+              }}
+            >
               Mission State
             </div>
 
@@ -135,13 +146,19 @@ function App() {
                   fontSize: 11,
                 }}
               >
-                <div style={{ textAlign: "center", fontWeight: "bold" }}>{state.id}</div>
-                <div style={{ textAlign: "center", fontSize: 10 }}>{state.status}</div>
+                <div
+                  style={{ textAlign: "center", fontWeight: "bold" }}
+                >
+                  {state.id}
+                </div>
+                <div style={{ textAlign: "center", fontSize: 10 }}>
+                  {state.status}
+                </div>
               </div>
             ))}
           </div>
 
-          {/* PieChart Panel */}
+          {/* PieChart Panel (Mini Pie Enemy) */}
           <div
             style={{
               background: "#2d2d2d",
@@ -151,12 +168,25 @@ function App() {
               color: "#fff",
             }}
           >
-            <div style={{ textAlign: "center", fontWeight: "bold", fontSize: 12 }}>
+            <div
+              style={{
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
               สถานะโดรน (ฝ่ายตรงข้าม)
             </div>
 
             {/* MINI PIE CHART */}
-            <div style={{ width: "100%", display: "flex", justifyContent: "center", marginTop: 6 }}>
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 6,
+              }}
+            >
               <PieChart width={110} height={90}>
                 <Pie
                   data={pieEnemy}
@@ -174,7 +204,6 @@ function App() {
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-
                 <Tooltip contentStyle={{ fontSize: 8, padding: 4 }} />
                 <Legend
                   verticalAlign="bottom"
@@ -183,7 +212,6 @@ function App() {
                 />
               </PieChart>
             </div>
-
           </div>
         </div>
       </div>

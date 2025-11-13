@@ -42,13 +42,16 @@ app.get('/', (req, res) => {
 });
 
 // ============ TARGET API Routes ============
-
-// GET - ดึงข้อมูล target ทั้งหมด
+// GET - ดึงข้อมูล target ทั้งหมด (ฝั่งตรงข้าม)
 app.get('/api/targets', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('merged_data_location');
-    const targets = await collection.find({}).toArray();
+    const collection = db.collection('Log_data_location');
+    const targets = await collection.find({
+      deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' },
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null }
+    }).toArray();
     
     res.json({ 
       success: true, 
@@ -60,11 +63,16 @@ app.get('/api/targets', async (req, res) => {
   }
 });
 
+// GET - ดึงข้อมูลโดรนฝั่งเรา
 app.get('/api/MyDrone', async (req, res) => {
   try {
     const db = mongoose.connection.useDb('Wep_socket_DB');
-    const collection = db.collection('merged_data_location');
-    const drones = await collection.find({}).toArray();
+    const collection = db.collection('LogMy_data_location');
+    const drones = await collection.find({
+      deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' },
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null }
+    }).toArray();
 
     res.json({ 
       success: true, 
@@ -76,9 +84,37 @@ app.get('/api/MyDrone', async (req, res) => {
   }
 });
 
+// GET - ดึงข้อมูลกล้องทั้งหมด
+app.get('/api/cameras', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('Wep_socket_DB');
+    const collection = db.collection('Camera_locations');
+    // รองรับทั้ง cameraId และ deviceId ที่ขึ้นต้นด้วย CAM-
+    const cameras = await collection.find({
+      $or: [
+        { cameraId: { $exists: true, $ne: null } },
+        { deviceId: { $regex: /^CAM-/i } }
+      ],
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null }
+    }).toArray();
+
+    console.log('📷 [API] พบกล้อง:', cameras.length, 'ตัว');
+
+    res.json({ 
+      success: true, 
+      count: cameras.length,
+      data: cameras 
+    });
+  } catch (error) {
+    console.error('❌ [API] Error fetching cameras:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 
 // ============ ALERTS API Routes ============
-
 // POST - บันทึก alert ใหม่
 app.post('/api/alerts', async (req, res) => {
   try {
@@ -119,13 +155,17 @@ app.get('/api/get/alerts', async (req, res) => {
     const db = mongoose.connection.useDb('Wep_socket_DB');
     const collection = db.collection('Log_data_location');
     
-    const alerts = await collection.find({})
+    const alerts = await collection.find({
+      deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' }
+    })
       .sort({ timestamp: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
     
-    const total = await collection.countDocuments();
+    const total = await collection.countDocuments({
+      deviceId: { $exists: true, $ne: null, $ne: 'undefined', $ne: 'unknown_device' }
+    });
     
     res.json({ 
       success: true, 
@@ -139,6 +179,7 @@ app.get('/api/get/alerts', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 
 // Route สำหรับจัดการ 404

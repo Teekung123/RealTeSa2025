@@ -17,8 +17,8 @@ export function setupWebSocket(port, getCollection, socketIO) {
 
     // รับข้อมูลจาก WebSocket Client
     ws.on('message', async (message) => {
-      const coll = getCollection();
-      if (!coll) {
+      const collections = getCollection();
+      if (!collections || !collections.targetColl || !collections.cameraColl) {
         console.warn("⚠️ [WebSocket] DB not ready, ignoring data");
         return ws.send(JSON.stringify({
           type: 'response',
@@ -30,35 +30,62 @@ export function setupWebSocket(port, getCollection, socketIO) {
       try {
         const parsedData = JSON.parse(message.toString());
         console.log(`📦 [WebSocket] รับข้อมูล: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
+        
+        // แสดงข้อมูลกล้องที่ตรวจจับ (ถ้ามี)
+        if (Array.isArray(parsedData)) {
+          parsedData.forEach(d => {
+            if (d.cameraId || d.detectedBy) {
+              console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${d.cameraId || d.detectedBy} -> เป้าหมาย: ${d.deviceId || 'unknown'}`);
+            }
+          });
+        } else if (parsedData.cameraId || parsedData.detectedBy) {
+          console.log(`📷 [WebSocket] ตรวจจับโดยกล้อง: ${parsedData.cameraId || parsedData.detectedBy} -> เป้าหมาย: ${parsedData.deviceId || 'unknown'}`);
+        }
 
         // ใช้ฟังก์ชันแปลงข้อมูล
-        const allEntries = transformDataToEntries2(parsedData);
+        const { targets, cameras } = transformDataToEntries2(parsedData);
 
-        // บันทึกข้อมูลลง MongoDB
-        if (allEntries.length > 0) {
-          await coll.insertMany(allEntries);
-          console.log("✅ [WebSocket] บันทึกข้อมูลสำเร็จ:", allEntries.length, "จุด");
+        // บันทึกข้อมูลลง MongoDB แยกตาม collection
+        let totalSaved = 0;
+        
+        if (targets.length > 0) {
+          await collections.targetColl.insertMany(targets);
+          console.log("✅ [WebSocket] บันทึกข้อมูลเป้าหมาย:", targets.length, "จุด");
+          totalSaved += targets.length;
+        }
+        
+        if (cameras.length > 0) {
+          await collections.cameraColl.insertMany(cameras);
+          console.log("✅ [WebSocket] บันทึกข้อมูลกล้อง:", cameras.length, "ตัว");
+          totalSaved += cameras.length;
+        }
+
+        if (totalSaved > 0) {
 
           // ตอบกลับว่าบันทึกสำเร็จ
           ws.send(JSON.stringify({
             type: 'response',
             status: 'success',
-            message: `ได้รับและบันทึกข้อมูลเรียบร้อยแล้ว ${allEntries.length} จุด`
+            message: `ได้รับและบันทึกข้อมูลเรียบร้อยแล้ว ${totalSaved} รายการ (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`
           }));
 
           // Broadcast ข้อมูลใหม่ไปยัง WebSocket Clients ทุกตัว
-          wss.clients.forEach((client) => {
-            if (client.readyState === 1) { // 1 = OPEN
-              client.send(JSON.stringify({
-                type: 'newData',
-                data: allEntries
-              }));
-            }
-          });
+          const allData = [...targets, ...cameras];
+          if (allData.length > 0) {
+            wss.clients.forEach((client) => {
+              if (client.readyState === 1) { // 1 = OPEN
+                client.send(JSON.stringify({
+                  type: 'newData',
+                  data: allData
+                }));
+              }
+            });
 
-          // Cross-broadcast ไปยัง Socket.IO clients ด้วย
-          if (socketIO) {
-            socketIO.emit('newData', allEntries);
+            // Cross-broadcast ไปยัง Socket.IO clients ด้วย (ทั้ง targets และ cameras)
+            if (socketIO) {
+              console.log(`📡 [WebSocket] ส่งข้อมูลไปยัง Socket.IO (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`);
+              socketIO.emit('newData', allData);
+            }
           }
 
         } else {
