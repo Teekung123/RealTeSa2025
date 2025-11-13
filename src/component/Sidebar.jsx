@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiHome, FiMap, FiDatabase, FiSettings, FiX, FiBell } from 'react-icons/fi';
+import { FiHome, FiMap, FiDatabase, FiSettings, FiX, FiBell, FiImage } from 'react-icons/fi';
 import { TbReportAnalytics } from "react-icons/tb";
 function Sidebar({ isOpen, onClose }) {
   return (

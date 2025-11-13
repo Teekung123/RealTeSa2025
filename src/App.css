@@ -40,6 +40,25 @@
   }
 }
 
+/* Popup สำหรับ detection */
+.detection-popup .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.detection-popup .leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.detection-popup img {
+  transition: transform 0.2s ease;
+}
+
+.detection-popup img:hover {
+  transform: scale(1.02);
+}
+
 .top-bar{
   display: grid;
   grid-template-columns: 48px 1fr 48px; /* เล็กลง */

@@ -6,19 +6,56 @@ import Sidebar from '../component/Sidebar.jsx'
 function MyDrone() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [droneData, setDroneData] = useState([]);
+    const [cameraData, setCameraData] = useState([]);
+    const [allData, setAllData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [filterText, setFilterText] = useState('');
+    const [viewMode, setViewMode] = useState('all'); // 'all', 'drones', 'cameras'
     const itemsPerPage = 30; // จำนวนรายการต่อหน้า
     const tableRef = useRef(null);
 
     useEffect(() => {
-        // ดึงข้อมูล targets จาก API
-        axios.get('http://192.168.1.102:3000/api/MyDrone')
+        // ดึงข้อมูลรวมทั้ง drones และ cameras จาก API
+        axios.get('http://localhost:3000/api/all-assets')
             .then(response => {
-                setDroneData(response.data.data || []);
+                const data = response.data.data || [];
+                
+                // กรองเฉพาะข้อมูลที่มี latitude, longitude ที่ถูกต้อง
+                const validData = data.filter(item => 
+                    item.latitude != null && 
+                    item.longitude != null &&
+                    !isNaN(item.latitude) && 
+                    !isNaN(item.longitude) &&
+                    item.latitude !== 0 && 
+                    item.longitude !== 0
+                );
+                
+                // กรองให้เหลือแค่ deviceId ซ้ำกันตัวเดียว (เอาข้อมูลล่าสุด)
+                const uniqueData = Object.values(
+                    validData.reduce((acc, item) => {
+                        const key = item.deviceId || item.cameraId || item._id;
+                        // ถ้ายังไม่มี หรือ timestamp ใหม่กว่า ให้เก็บตัวนี้
+                        if (!acc[key] || new Date(item.timestamp) > new Date(acc[key].timestamp)) {
+                            acc[key] = item;
+                        }
+                        return acc;
+                    }, {})
+                );
+                
+                setAllData(uniqueData);
+                
+                // แยกข้อมูลตามประเภท
+                const drones = uniqueData.filter(item => item.assetType === 'drone');
+                const cameras = uniqueData.filter(item => item.assetType === 'camera');
+                
+                setDroneData(drones);
+                setCameraData(cameras);
                 setLoading(false);
+                
+                console.log(`📊 โหลดข้อมูล: โดรน ${drones.length} ตัว, กล้อง ${cameras.length} ตัว (Unique)`);
+                console.log(`🗑️ กรองข้อมูลซ้ำและไม่ถูกต้องออก: ${data.length - uniqueData.length} รายการ`);
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
@@ -33,8 +70,21 @@ function MyDrone() {
         return arr.join(', ');
     };
 
-    // ✅ ฟิลเตอร์ข้อมูล
-    const filteredData = droneData.filter(item =>
+    // ✅ ฟิลเตอร์ข้อมูลตาม viewMode
+    const getDisplayData = () => {
+        switch(viewMode) {
+            case 'drones':
+                return droneData;
+            case 'cameras':
+                return cameraData;
+            default:
+                return allData;
+        }
+    };
+    
+    const displayData = getDisplayData();
+    
+    const filteredData = displayData.filter(item =>
         Object.values(item).some(value =>
             Array.isArray(value)
                 ? value.join(',').toLowerCase().includes(filterText.toLowerCase())
@@ -197,7 +247,53 @@ function MyDrone() {
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
             <div style={{ padding: '20px' }}>
-                <h2 style={{color:'#ffffff'}}>🎯 Target Data from MongoDB</h2>
+                <h2 style={{color:'#ffffff'}}>Our Assets (Drones & Cameras)</h2>
+
+                {/* ปุ่มสลับโหมดการแสดงผล */}
+                <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => { setViewMode('all'); setCurrentPage(1); }}
+                        style={{
+                            padding: '8px 16px',
+                            background: viewMode === 'all' ? '#007bff' : '#fff',
+                            color: viewMode === 'all' ? '#fff' : '#000',
+                            border: '1px solid #007bff',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: viewMode === 'all' ? 'bold' : 'normal'
+                        }}
+                    >
+                        📊 ทั้งหมด ({allData.length})
+                    </button>
+                    <button
+                        onClick={() => { setViewMode('drones'); setCurrentPage(1); }}
+                        style={{
+                            padding: '8px 16px',
+                            background: viewMode === 'drones' ? '#10b981' : '#fff',
+                            color: viewMode === 'drones' ? '#fff' : '#000',
+                            border: '1px solid #10b981',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: viewMode === 'drones' ? 'bold' : 'normal'
+                        }}
+                    >
+                        🚁 โดรน ({droneData.length})
+                    </button>
+                    <button
+                        onClick={() => { setViewMode('cameras'); setCurrentPage(1); }}
+                        style={{
+                            padding: '8px 16px',
+                            background: viewMode === 'cameras' ? '#3b82f6' : '#fff',
+                            color: viewMode === 'cameras' ? '#fff' : '#000',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: viewMode === 'cameras' ? 'bold' : 'normal'
+                        }}
+                    >
+                        📷 กล้อง ({cameraData.length})
+                    </button>
+                </div>
 
                 {/* ✅ กล่องค้นหา */}
                 <div style={{ marginBottom: '20px' }}>
@@ -223,9 +319,9 @@ function MyDrone() {
 
                 {/* แสดงข้อมูลสถิติ */}
                 <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap',color: '#ffffffff' }}>
-                    <p><strong>Total records:</strong> {droneData.length}</p>
+                    <p><strong>Total records:</strong> {displayData.length}</p>
                     <p><strong>Current page:</strong> {currentPage} / {totalPages}</p>
-                    <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, droneData.length)} of {droneData.length}</p>
+                    <p><strong>Showing:</strong> {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length}</p>
                     <p><strong>Items per page:</strong> {itemsPerPage}</p>
                     <p style={{ color: '#f81111ff' }}><strong>Displaying rows:</strong> {currentItems.length}</p>
                 </div>
@@ -255,39 +351,69 @@ function MyDrone() {
                             }}>
                                 <tr>
                                     <th style={{ border: '1px solid #ddd', minWidth: '60px' }}>No.</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '200px' }}>_id</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Type</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Device ID</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Latitude</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Longitude</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '80px' }}>Altitude</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Status</th>
                                     <th style={{ border: '1px solid #ddd', minWidth: '100px' }}>Time</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Position 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Velocity 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Acceleration 3D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Position 2D</th>
-                                    <th style={{ border: '1px solid #ddd', minWidth: '150px' }}>Velocity 2D</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '180px' }}>Timestamp</th>
+                                    <th style={{ border: '1px solid #ddd', minWidth: '200px' }}>_id</th>
                                 </tr>
                             </thead> 
                             <tbody ref={tableRef}>
-                                {currentItems.map((item, index) => (
-                                    <tr key={item._id} style={{ background: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                                {currentItems.map((item, index) => {
+                                    const isCamera = item.assetType === 'camera';
+                                    const isCameraStyle = isCamera ? '#e0f2fe' : '#f0fdf4';
+                                    
+                                    return (
+                                    <tr key={item._id} style={{ background: index % 2 === 0 ? '#fff' : isCameraStyle }}>
                                         <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
                                             {indexOfFirstItem + index + 1}
                                         </td>
+                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
+                                            {isCamera ? '📷 Camera' : '🚁 Drone'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', fontWeight: 'bold' }}>
+                                            {item.deviceId || item.cameraId || 'N/A'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
+                                            {item.latitude?.toFixed(6) || 'N/A'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
+                                            {item.longitude?.toFixed(6) || 'N/A'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
+                                            {item.altitude || 0} m
+                                        </td>
+                                        <td style={{ 
+                                            border: '1px solid #ddd', 
+                                            textAlign: 'center',
+                                            color: item.status === 'active' ? '#10b981' : item.status === 'inactive' ? '#ef4444' : '#000',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {item.status || 'N/A'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', textAlign: 'center' }}>
+                                            {item.time || 'N/A'}
+                                        </td>
+                                        <td style={{ border: '1px solid #ddd', fontSize: '11px' }}>
+                                            {item.timestamp ? new Date(item.timestamp).toLocaleString('th-TH') : 'N/A'}
+                                        </td>
                                         <td style={{ 
                                             border: '1px solid #ddd',
-                                            fontSize: '11px', 
+                                            fontSize: '10px', 
                                             maxWidth: '200px', 
                                             overflow: 'hidden', 
                                             textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
+                                            whiteSpace: 'nowrap',
+                                            color: '#666'
                                         }}>
-                                            {item._id}
+                                            {/* {item._id} */}
                                         </td>
-                                        <td style={{ border: '1px solid #ddd' }}>{item.time}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.position3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.velocity3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.acceleration3D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.position2D)}</td>
-                                        <td style={{ border: '1px solid #ddd' }}>{renderArray(item.velocity2D)}</td>
                                     </tr>
-                                ))}
+                                )})}
                             </tbody>
                         </table>
                     </div>

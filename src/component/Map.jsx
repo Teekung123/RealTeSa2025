@@ -29,7 +29,7 @@ const Map = forwardRef((props, ref) => {
     },
     
     // เพิ่ม marker ที่ยังไม่หาย
-    addPersistentMarker: (deviceId, lat, lng, type, altitude = 0, cameraId = 'N/A') => {
+    addPersistentMarker: (deviceId, lat, lng, type, altitude = 0, cameraId = 'N/A', imageUrl = null, detectionData = {}) => {
       if (!mapInstanceRef.current) return;
       
       // ถ้ามี marker เก่าอยู่แล้ว ลบทิ้ง 
@@ -84,20 +84,45 @@ const Map = forwardRef((props, ref) => {
         })
       }).addTo(mapInstanceRef.current);
       
-      // เพิ่ม Popup รายละเอียด
-      marker.bindPopup(`
-        <div style="font-size: 12px; line-height: 1.6;">
+      // สร้าง Popup content พร้อมรูปภาพ
+      const popupContent = `
+        <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
           <b style="font-size: 14px; color: ${color};">🚨 ${deviceId}</b><br>
-          <b>แจ้งเตือน</b><br>
+          <b>แจ้งเตือนการตรวจจับ</b><br>
           <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
-          <b>📍 จุดตรวจจับ</b><br>
+          ${imageUrl ? `
+            <div style="margin: 10px 0;">
+              <img src="${imageUrl}" 
+                   style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer;" 
+                   onclick="window.open('${imageUrl}', '_blank')"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+              />
+              <div style="display: none; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
+                <span style="font-size: 48px;">📷</span><br>
+                <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
+              </div>
+            </div>
+          ` : `
+            <div style="margin: 10px 0; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
+              <span style="font-size: 48px;">📷</span><br>
+              <span style="color: #666;">ไม่มีภาพ</span>
+            </div>
+          `}
+          <b>📍 ข้อมูลการตรวจจับ</b><br>
           ⏰ เวลา: ${detectedTime}<br>
           📊 สถานะ: <span style="color: ${color}; font-weight: bold;">${statusText}</span><br>
           📌 พิกัด: [${lat.toFixed(5)}, ${lng.toFixed(5)}]<br>
           ✈️ ระดับความสูง: ${altitude} m<br>
           📷 ตรวจจับโดย: ${cameraId}
+          ${detectionData.confidence ? `<br>🎯 ความแม่นยำ: ${(detectionData.confidence * 100).toFixed(1)}%` : ''}
+          ${detectionData.targetId ? `<br>🎯 เป้าหมาย: ${detectionData.targetId}` : ''}
         </div>
-      `);
+      `;
+      
+      marker.bindPopup(popupContent, {
+        maxWidth: 350,
+        className: 'detection-popup'
+      });
       
       // เก็บ marker ไว้
       markersRef.current[deviceId] = marker;
@@ -210,6 +235,16 @@ const Map = forwardRef((props, ref) => {
         const cameraResponse = await axios.get('http://localhost:3000/api/cameras');
         const cameraData = cameraResponse.data.data || [];
         
+        // ดึงข้อมูล detections ล่าสุด (เพื่อแสดงบนแผนที่)
+        let detectionsData = [];
+        try {
+          const detectionsResponse = await axios.get('http://localhost:3000/api/detections');
+          detectionsData = detectionsResponse.data.data || [];
+          console.log('📷 Detections Data:', detectionsData.length, 'records');
+        } catch (err) {
+          console.warn('⚠️ ไม่สามารถโหลด detections:', err.message);
+        }
+        
         console.log('🟢 My Drone Data:', myDroneData.length, 'records');
         console.log('🔴 Opponent Data:', opponentData.length, 'records');
         console.log('📷 Camera Data:', cameraData.length, 'records');
@@ -236,6 +271,63 @@ const Map = forwardRef((props, ref) => {
         
         // วาดกล้อง (สีน้ำเงิน)
         drawCameras(mapInstanceRef.current, cameraData);
+        
+        // วาด detection markers (ถ้ามี)
+        if (detectionsData.length > 0) {
+          console.log('📷 กำลังวาด detection markers:', detectionsData.length, 'รายการ');
+          detectionsData.forEach(detection => {
+            if (detection.latitude && detection.longitude) {
+              const marker = L.marker([detection.latitude, detection.longitude], {
+                icon: L.divIcon({
+                  className: 'detection-marker',
+                  html: `<div style="
+                    background: ${detection.type === 'danger' ? '#ef4444' : detection.type === 'warning' ? '#f59e0b' : '#3b82f6'};
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                  "></div>`,
+                  iconSize: [20, 20]
+                })
+              }).addTo(mapInstanceRef.current);
+              
+              // Popup พร้อมรูปภาพ
+              const popupContent = `
+                <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
+                  <b style="font-size: 14px; color: #3b82f6;">📷 ${detection.cameraId || detection.deviceId}</b><br>
+                  <b>Detection Record</b><br>
+                  <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                  ${detection.imageUrl ? `
+                    <div style="margin: 10px 0;">
+                      <img src="${detection.imageUrl}" 
+                           style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer;" 
+                           onclick="window.open('${detection.imageUrl}', '_blank')"
+                           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                      />
+                      <div style="display: none; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
+                        <span style="font-size: 48px;">📷</span><br>
+                        <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
+                      </div>
+                    </div>
+                  ` : ''}
+                  <b>📍 รายละเอียด</b><br>
+                  🎯 เป้าหมาย: ${detection.detectedDevice || detection.targetId || 'N/A'}<br>
+                  📊 ประเภท: ${detection.type || 'detection'}<br>
+                  📌 พิกัด: [${detection.latitude.toFixed(5)}, ${detection.longitude.toFixed(5)}]<br>
+                  ✈️ ระดับความสูง: ${detection.altitude || 0} m
+                  ${detection.confidence ? `<br>🎯 ความแม่นยำ: ${(detection.confidence * 100).toFixed(1)}%` : ''}
+                  ${detection.timestamp ? `<br>⏰ เวลา: ${new Date(detection.timestamp).toLocaleString('th-TH')}` : ''}
+                </div>
+              `;
+              
+              marker.bindPopup(popupContent, {
+                maxWidth: 350,
+                className: 'detection-popup'
+              });
+            }
+          });
+        }
         
         // เพิ่ม Timeline Control (1 ตัว)
         const validMyDroneFeatures = myDroneFeatures.filter(f => {
@@ -357,9 +449,67 @@ const Map = forwardRef((props, ref) => {
         if (Array.isArray(data)) {
           data.forEach(item => {
             const { deviceId, latitude, longitude, altitude, type, cameraId, 
-                    name, status, direction, fov, detectionRange, isCameraData } = item;
+                    name, status, direction, fov, detectionRange, isCameraData, imageUrl } = item;
             
             if (deviceId && latitude && longitude) {
+              // ถ้ามี imageUrl แสดงว่าเป็น detection พร้อมรูปภาพ
+              if (imageUrl && cameraId) {
+                console.log('📷 [Map] ได้รับ detection พร้อมรูปภาพ:', deviceId);
+                
+                // สร้าง detection marker ทันที
+                const detectionMarker = L.marker([latitude, longitude], {
+                  icon: L.divIcon({
+                    className: 'detection-marker',
+                    html: `<div style="
+                      background: ${type === 'danger' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+                      width: 20px;
+                      height: 20px;
+                      border-radius: 50%;
+                      border: 2px solid white;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                      animation: pulse 2s infinite;
+                    "></div>`,
+                    iconSize: [20, 20]
+                  })
+                }).addTo(mapInstanceRef.current);
+                
+                const popupContent = `
+                  <div style="font-size: 12px; line-height: 1.6; min-width: 250px;">
+                    <b style="font-size: 14px; color: #3b82f6;">📷 ${cameraId}</b><br>
+                    <b>Detection Record (Real-time)</b><br>
+                    <hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="margin: 10px 0;">
+                      <img src="${imageUrl}" 
+                           style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; cursor: pointer;" 
+                           onclick="window.open('${imageUrl}', '_blank')"
+                           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                      />
+                      <div style="display: none; padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center;">
+                        <span style="font-size: 48px;">📷</span><br>
+                        <span style="color: #666;">ไม่สามารถโหลดภาพได้</span>
+                      </div>
+                    </div>
+                    <b>📍 รายละเอียด</b><br>
+                    🎯 เป้าหมาย: ${item.targetId || deviceId}<br>
+                    📊 ประเภท: ${type || 'detection'}<br>
+                    📌 พิกัด: [${latitude.toFixed(5)}, ${longitude.toFixed(5)}]<br>
+                    ✈️ ระดับความสูง: ${altitude || 0} m<br>
+                    ⏰ เวลา: ${new Date().toLocaleString('th-TH')}
+                  </div>
+                `;
+                
+                detectionMarker.bindPopup(popupContent, {
+                  maxWidth: 350,
+                  className: 'detection-popup'
+                });
+                
+                // เก็บ marker ไว้
+                realtimeMarkersRef.current[`DETECTION-${deviceId}-${Date.now()}`] = detectionMarker;
+                
+                console.log('✅ [Map] เพิ่ม detection marker พร้อมรูปภาพแล้ว');
+                return; // ข้ามการสร้าง marker ปกติ
+              }
+              
               // ตรวจสอบว่าเป็นข้อมูลกล้องหรือไม่
               const isCamera = deviceId.startsWith('CAM-') || deviceId.includes('camera') || isCameraData === true;
               
@@ -606,7 +756,14 @@ const Map = forwardRef((props, ref) => {
         const camId = camera.cameraId || camera.deviceId || 'CAMERA-UNKNOWN';
         const { name, latitude, longitude, status, direction, fov, detectionRange } = camera;
         
-        console.log('📷 วาดกล้อง:', camId, 'ที่', latitude, longitude);
+        console.log('📷 วาดกล้อง:', camId, 'ที่', latitude, longitude, 'สถานะ:', status);
+        
+        // ลบ marker และ FOV เก่าถ้ามี
+        if (realtimeMarkersRef.current[camId]) {
+          const oldMarker = realtimeMarkersRef.current[camId];
+          if (oldMarker.marker) map.removeLayer(oldMarker.marker);
+          if (oldMarker.fovLayer) map.removeLayer(oldMarker.fovLayer);
+        }
         
         // กำหนดสีตามสถานะ
         const color = status === 'active' ? '#3b82f6' : '#9ca3af'; // น้ำเงินหรือเทา
@@ -647,6 +804,8 @@ const Map = forwardRef((props, ref) => {
           </div>
         `);
         
+        let fovLayer = null;
+        
         // วาด Field of View (FOV) ถ้ากล้องทำงาน
         if (status === 'active' && fov < 360) {
           // คำนวณมุมเริ่มต้นและสิ้นสุดของ FOV
@@ -667,7 +826,7 @@ const Map = forwardRef((props, ref) => {
           sectorPoints.push([latitude, longitude]); // ปิดรูป
           
           // วาด Polygon
-          L.polygon(sectorPoints, {
+          fovLayer = L.polygon(sectorPoints, {
             color: color,
             fillColor: color,
             fillOpacity: 0.15,
@@ -681,7 +840,7 @@ const Map = forwardRef((props, ref) => {
           `);
         } else if (status === 'active' && fov === 360) {
           // วาดวงกลมสำหรับกล้อง 360 องศา
-          L.circle([latitude, longitude], {
+          fovLayer = L.circle([latitude, longitude], {
             radius: detectionRange,
             color: color,
             fillColor: color,
@@ -695,6 +854,12 @@ const Map = forwardRef((props, ref) => {
             ระยะตรวจจับ: ${detectionRange}m
           `);
         }
+        
+        // เก็บ marker และ FOV layer ไว้ใน ref
+        realtimeMarkersRef.current[camId] = {
+          marker: cameraMarker,
+          fovLayer: fovLayer
+        };
       });
       
       console.log('✅ วาดกล้องเสร็จสิ้น!');

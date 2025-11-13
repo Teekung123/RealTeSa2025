@@ -33,7 +33,8 @@ function AlertsBox({ onAlertClick, mapRef }) {
         const newAlerts = data.map(item => {
           const deviceId = item.deviceId || 'unknown';
           const status = item.type || 'success';
-          const cameraId = item.cameraId || 'N/A'; // เพิ่ม cameraId
+          const cameraId = item.cameraId || 'N/A';
+          const imageUrl = item.imageUrl || null; // เพิ่ม imageUrl
           
           // ดึงพิกัดตัวแรก (หรือตัวเดียว)
           let lat, lng, alt;
@@ -70,7 +71,10 @@ function AlertsBox({ onAlertClick, mapRef }) {
             latitude: lat,
             longitude: lng,
             altitude: alt,
-            cameraId: cameraId, // เพิ่ม cameraId
+            cameraId: cameraId,
+            imageUrl: imageUrl, // เพิ่ม imageUrl
+            confidence: item.confidence || null,
+            targetId: item.targetId || item.detectedDevice || null,
             timestamp: Date.now()
           };
         });
@@ -101,14 +105,19 @@ function AlertsBox({ onAlertClick, mapRef }) {
               // ถ้าเป็น success ให้ลบ marker
               mapRef.current.removeMarker(alert.deviceId);
             } else {
-              // ถ้าไม่ใช่ success ให้แสดง marker
+              // ถ้าไม่ใช่ success ให้แสดง marker พร้อมรูปภาพ
               mapRef.current.addPersistentMarker(
                 alert.deviceId,
                 alert.latitude,
                 alert.longitude,
                 alert.status,
                 alert.altitude || 0,
-                alert.cameraId || 'N/A'
+                alert.cameraId || 'N/A',
+                alert.imageUrl || null,
+                {
+                  confidence: alert.confidence,
+                  targetId: alert.targetId
+                }
               );
             }
           });

@@ -105,57 +105,45 @@ function App() {
         >
           <Map ref={mapRef} />
         </div>
-
-        {/* ขวา: Mission + Pie Enemy */}
-        <div
-          style={{
-            width: 200,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          {/* Mission Panel */}
-          <div
-            style={{
-              background: "#2d2d2d",
-              padding: 10,
-              borderRadius: 8,
-              color: "#fff",
-            }}
-          >
-            <div
-              style={{
-                fontWeight: "bold",
-                textAlign: "center",
-                marginBottom: 8,
-              }}
-            >
+        
+        {/* Right Side - Mission State & Graph */}
+        <div style={{ width: '160px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          
+          {/* Mission State Panel */}
+          <div style={{ 
+            background: '#2d2d2d', 
+            borderRadius: '8px', 
+            padding: '10px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ 
+              color: '#fff', 
+              fontSize: '14px', 
+              marginBottom: '10px', 
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}>
               Mission State
             </div>
-
-            {missionStates.map((state, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#fff",
-                  color: "#000",
-                  marginBottom: 6,
-                  padding: 8,
-                  borderRadius: 4,
-                  fontSize: 11,
-                }}
-              >
-                <div
-                  style={{ textAlign: "center", fontWeight: "bold" }}
-                >
+            
+            {missionStates.map((state, index) => (
+              <div key={index} style={{
+                background: '#fff',
+                color: '#000',
+                padding: '10px 8px',
+                marginBottom: '8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                minHeight: '55px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', textAlign: 'center' }}>
                   {state.id}
                 </div>
                 <div style={{ textAlign: "center", fontSize: 10 }}>
                   {state.status}
                 </div>
               </div>
-            ))}
+            ))} */}
           </div>
 
           {/* PieChart Panel (Mini Pie Enemy) */}
