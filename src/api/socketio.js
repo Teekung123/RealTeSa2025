@@ -40,7 +40,7 @@ export function setupSocketIO(server, getCollection) {
     // รับข้อมูลจาก Client ผ่าน event 'sendData'
     socket.on('sendData', async (parsedData, ackCallback) => {
       const collections = getCollection();
-      if (!collections || !collections.targetColl || !collections.cameraColl) {
+      if (!collections || !collections.myDroneColl || !collections.targetColl || !collections.cameraColl) {
         if (ackCallback) ackCallback({ status: "error", message: "DB not ready" });
         return;
       }
@@ -49,15 +49,21 @@ export function setupSocketIO(server, getCollection) {
         console.log(`📦 [Socket.IO] ชนิดข้อมูลจาก Client: ${Array.isArray(parsedData) ? "Array" : typeof parsedData}`);
 
         // ใช้ฟังก์ชันแปลงข้อมูล
-        const { targets, cameras } = transformDataToEntries2(parsedData);
+        const { myDrones, opponents, cameras } = transformDataToEntries2(parsedData);
 
         // บันทึกข้อมูลลง MongoDB แยกตาม collection
         let totalSaved = 0;
         
-        if (targets.length > 0) {
-          await collections.targetColl.insertMany(targets);
-          console.log("✅ [Socket.IO] บันทึกข้อมูลเป้าหมาย:", targets.length, "จุด");
-          totalSaved += targets.length;
+        if (myDrones.length > 0) {
+          await collections.myDroneColl.insertMany(myDrones);
+          console.log("✅ [Socket.IO] บันทึกข้อมูลโดรนฝั่งเรา:", myDrones.length, "ตัว");
+          totalSaved += myDrones.length;
+        }
+        
+        if (opponents.length > 0) {
+          await collections.targetColl.insertMany(opponents);
+          console.log("✅ [Socket.IO] บันทึกข้อมูลฝั่งตรงข้าม:", opponents.length, "จุด");
+          totalSaved += opponents.length;
         }
         
         if (cameras.length > 0) {
@@ -71,14 +77,14 @@ export function setupSocketIO(server, getCollection) {
           if (ackCallback) {
             ackCallback({
               status: "ok",
-              message: `บันทึกข้อมูลสำเร็จ ${totalSaved} รายการ (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`,
+              message: `บันทึกข้อมูลสำเร็จ ${totalSaved} รายการ (โดรนเรา: ${myDrones.length}, ฝั่งตรงข้าม: ${opponents.length}, กล้อง: ${cameras.length})`,
             });
           }
 
-          // Broadcast ข้อมูลใหม่ไปให้ Client ทุกคน (ทั้ง targets และ cameras)
-          const newData = [...targets, ...cameras];
+          // Broadcast ข้อมูลใหม่ไปให้ Client ทุกคน (ทั้ง myDrones, opponents และ cameras)
+          const newData = [...myDrones, ...opponents, ...cameras];
           if (newData.length > 0) {
-            console.log(`📡 [Socket.IO] กำลังส่งข้อมูลใหม่ไปยัง clients ทั้งหมด (เป้าหมาย: ${targets.length}, กล้อง: ${cameras.length})`);
+            console.log(`📡 [Socket.IO] กำลังส่งข้อมูลใหม่ไปยัง clients ทั้งหมด (โดรนเรา: ${myDrones.length}, ฝั่งตรงข้าม: ${opponents.length}, กล้อง: ${cameras.length})`);
             io.emit('newData', newData);
           }
 

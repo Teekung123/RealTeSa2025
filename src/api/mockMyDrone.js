@@ -47,7 +47,7 @@ function generateMyDroneData(deviceId, type = "drone", count = 1) {
 }
 
 // ฟังก์ชันบันทึกข้อมูลลง MongoDB
-async function saveToMongoDB(dataArray, collectionName = 'LogMy_data_location') {
+async function saveToMongoDB(dataArray, collectionName = 'Mydrone_location') {
   try {
     console.log('🔄 กำลังเชื่อมต่อ MongoDB...');
     await mongoose.connect(MONGODB_URI);
@@ -96,7 +96,7 @@ async function generateMockMyDroneData() {
   console.log(`📦 สร้างข้อมูลทั้งหมด: ${mockData.length} รายการ\n`);
   
   // บันทึกลง collection ของโดรนเรา
-  await saveToMongoDB(mockData, 'LogMy_data_location');
+  await saveToMongoDB(mockData, 'Mydrone_location');
 }
 
 // รันโปรแกรม
