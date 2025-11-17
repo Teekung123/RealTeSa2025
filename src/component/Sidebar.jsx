@@ -126,7 +126,7 @@ function Sidebar({ isOpen, onClose }) {
             <span style={{ fontSize: '16px' }}>ข้อมูลโดรน</span>
           </Link>
 
-          <Link
+          {/* <Link
             to="/map"
             onClick={onClose}
             style={{
@@ -143,7 +143,7 @@ function Sidebar({ isOpen, onClose }) {
           >
             <FiMap size={20} />
             <span style={{ fontSize: '16px' }}>แผนที่เพิ่มเติม</span>
-          </Link>
+          </Link> */}
 
           <Link
             to="/alerts"
@@ -171,7 +171,7 @@ function Sidebar({ isOpen, onClose }) {
               margin: '20px 20px',
             }}
           />
-
+{/* 
           <Link
             to="/settings"
             onClick={onClose}
@@ -189,7 +189,7 @@ function Sidebar({ isOpen, onClose }) {
           >
             <FiSettings size={20} />
             <span style={{ fontSize: '16px' }}>ตั้งค่า</span>
-          </Link>
+          </Link> */}
         </nav>
 
         {/* Footer */}

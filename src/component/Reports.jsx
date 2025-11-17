@@ -39,7 +39,7 @@ export default function Reports() {
         setLoading(true);
         setError(null);
 
-        const res = await fetch("http://192.168.1.102:3000/api/targets");
+        const res = await fetch("http://localhost:3000/api/targets");
         console.log("🌐 [Reports] fetch status:", res.status);
 
         if (!res.ok) {
@@ -288,65 +288,6 @@ export default function Reports() {
               </ResponsiveContainer>
             </div>
           </div>
-
-
-
-
-
-          {/* กราฟเส้น: จำนวนการตรวจจับต่อวัน
-          <div className="r-col-12 r-md-col-6">
-            <Card title="จำนวนการตรวจจับฝ่ายตรงข้าม / วัน">
-              <div className="r-h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={lineDetections}>
-                    <XAxis dataKey="date" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="detections"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </div> */}
-
-          {/* ตาราง
-          <div className="r-col-12">
-            <Card title="ตารางการตรวจพบล่าสุด">
-              <div className="r-table-wrap">
-                <table className="r-table">
-                  <thead>
-                    <tr>
-                      <th>ลำดับ</th>
-                      <th>Device</th>
-                      <th>Camera</th>
-                      <th>ละติจูด</th>
-                      <th>ลองจิจูด</th>
-                      <th>ความสูง (m)</th>
-                      <th>วัน/เวลาที่ตรวจพบ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((r) => (
-                      <tr key={r.no}>
-                        <td>{r.no}</td>
-                        <td>{r.deviceId}</td>
-                        <td>{r.cameraId}</td>
-                        <td>{r.lat}</td>
-                        <td>{r.lng}</td>
-                        <td>{r.altitude}</td>
-                        <td>{r.ts}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div> */}
         </div>
       </div>
     </>

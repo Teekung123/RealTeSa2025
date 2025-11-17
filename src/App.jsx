@@ -28,7 +28,7 @@ function App() {
     const fetchData = async () => {
       try {
         // Fetch opponents
-        const resOpponents = await fetch("http://192.168.1.102:3000/api/targets");
+        const resOpponents = await fetch("http://localhost:3000/api/targets");
         if (resOpponents.ok) {
           const raw = await resOpponents.json();
           let list = [];
@@ -48,7 +48,7 @@ function App() {
         }
 
         // Fetch mydrones
-        const resMyDrones = await fetch("http://192.168.1.102:3000/api/MyDrone");
+        const resMyDrones = await fetch("http://localhost:3000/api/MyDrone");
         if (resMyDrones.ok) {
           const myData = await resMyDrones.json();
           // ตรวจสอบว่าเป็น array หรือไม่

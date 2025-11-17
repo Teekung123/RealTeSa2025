@@ -30,12 +30,12 @@ function MyDrone() {
     const fetchData = async () => {
       try {
         // ดึงข้อมูลโดรนฝั่งเรา
-        const dronesRes = await axios.get("http://192.168.1.102:3000/api/MyDrone");
+        const dronesRes = await axios.get("http://localhost:3000/api/MyDrone");
         const dronesList = dronesRes.data.data || [];
         setMyDrones(dronesList);
 
         // ดึงข้อมูลกล้อง
-        const camerasRes = await axios.get("http://192.168.1.102:3000/api/cameras");
+        const camerasRes = await axios.get("http://localhost:3000/api/cameras");
         const camerasList = camerasRes.data.data || [];
         setCameras(camerasList);
 
